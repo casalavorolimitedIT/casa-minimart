@@ -6,6 +6,7 @@ import { type Product, formatPrice, getStockLevel } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { Check, ShoppingCart } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import Link from "next/link";
 import SmartImage from "../custom/smart-images";
 import { Button } from "../ui/button";
 
@@ -46,7 +47,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div
+    <Link
+      href={`/home/product/${product.id}`}
       className={cn(
         "group relative flex flex-col rounded-xl border border-[#E5D9C0] overflow-hidden product-card-hover",
         "bg-white/80",
@@ -120,6 +122,6 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
         </Button>
       </div>
-    </div>
+    </Link>
   );
 }
