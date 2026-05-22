@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
-import { DevToolbarWrapper } from './DevToolbarWrapper';
+import { DevToolbarWrapper } from "./DevToolbarWrapper";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +19,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "my-supabase-boilerplate",
-  description: "A Next.js boilerplate with Supabase authentication and session management.",
+  title: "Casalavoro MiniMart",
+  description: "A mini supermarket built for quest by Casalavoro",
+  icons: {
+    icon: [
+      {
+        url: "/casalogo2.png",
+        href: "/casalogo2.png",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -27,12 +38,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="icon" type="image/png" href="/casalogo2.png" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-      <DevToolbarWrapper />
-        </body>
+        <TooltipProvider>
+        <QueryProvider>{children}</QueryProvider>
+          <Toaster position="top-right" closeButton />
+        </TooltipProvider>
+        <DevToolbarWrapper />
+      </body>
     </html>
   );
 }
