@@ -6,25 +6,47 @@ import PopularSection from "@/components/home/Popularsection";
 import ProductSection from "@/components/home/productSection";
 import SidebarComponent from "@/components/home/sidebar";
 import NavbarComponents from "@/components/ui/header";
-import { beverages, bodycare, seasoning, sweets, toiletries } from "@/lib/data";
-import { useInventoryItems } from "@/lib/queries/supabase-rest";
-import { useState } from "react";
+import { adaptInventoryItem, CATEGORY_ACCENT, groupByCategory } from "@/lib/adapters";
+import { useInfiniteInventoryItems } from "@/lib/queries/supabase-rest";
+import { useEffect, useRef, useState } from "react";
+
+const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [cartCount, setCartCount] = useState(2);
-  const siteId = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
-  const category = "General";
-  const { data, error, isLoading } = useInventoryItems({
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data,
+    error,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteInventoryItems({
     select: "*",
-    limit: 10,
-    queryParams: {
-      // Plain values are automatically converted to eq.*
-      site_id: siteId,
-      category,
-    },
+    queryParams: { site_id: SITE_ID },
   });
-  console.log("🚀 ~ HomePage ~ data:", data);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const products = data?.pages.flat().map(adaptInventoryItem) ?? [];
+  const grouped = groupByCategory(products);
+
   return (
     <div
       className="min-h-screen flex flex-col"
@@ -33,59 +55,53 @@ export default function Home() {
       <NavbarComponents cartCount={cartCount} />
 
       <div className="max-w-7xl mx-auto w-full px-4 py-6 flex gap-6 flex-1">
-        {/* Sidebar */}
         <SidebarComponent
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
         />
 
-        {/* Main content */}
         <main className="flex-1 min-w-0 space-y-10">
-          {/* Hero + Featured */}
           <HeroBanner />
 
-          {/* Product sections */}
-          <div id="toiletries" className="space-y-10">
-            <ProductSection
-              title="Toiletries & Personal Care"
-              products={toiletries}
-              accentColor="#C8720A"
-            />
-          </div>
+          {isLoading && (
+            <div className="flex justify-center py-20">
+              <p className="text-sm" style={{ color: "var(--espresso)" }}>
+                Loading products…
+              </p>
+            </div>
+          )}
 
-          <div id="bodycare">
-            <ProductSection
-              title="Body Care & Skincare"
-              products={bodycare}
-              accentColor="#C8A87A"
-            />
-          </div>
+          {error && (
+            <div className="py-10">
+              <p className="text-sm text-red-600">
+                Failed to load products. Please refresh the page.
+              </p>
+            </div>
+          )}
 
-          <div id="tea-coffee">
-            <ProductSection
-              title="Tea, Coffee & Beverages"
-              products={beverages}
-              accentColor="#4A7C59"
-            />
-          </div>
+          {!isLoading && !error && (
+            <div className="space-y-10">
+              {Object.entries(grouped).map(([category, items]) => (
+                <ProductSection
+                  key={category}
+                  title={category}
+                  products={items}
+                  accentColor={CATEGORY_ACCENT[category] ?? CATEGORY_ACCENT._default}
+                />
+              ))}
 
-          <div id="snacks">
-            <ProductSection
-              title="Sweets & Bubble Gum"
-              products={sweets}
-              accentColor="#C85A20"
-            />
-          </div>
+              <div ref={sentinelRef} className="h-4" />
 
-          <div id="seasoning">
-            <ProductSection
-              title="Seasoning"
-              products={seasoning}
-              accentColor="#7A5C3E"
-            />
-          </div>
+              {isFetchingNextPage && (
+                <div className="flex justify-center py-6">
+                  <p className="text-sm" style={{ color: "var(--espresso)" }}>
+                    Loading more…
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
-          {/* Popular */}
           <PopularSection />
         </main>
       </div>
