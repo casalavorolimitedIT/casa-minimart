@@ -102,6 +102,7 @@ function CartItemCard({
           <div className="flex items-center rounded-xl border border-[#DDD0B3] overflow-hidden bg-white">
             <button
               onClick={() => onUpdateQty(item.id, -1)}
+              aria-label={`Decrease quantity of ${item.name}`}
               className="w-8 h-8 flex items-center justify-center text-[#7A5C3E] hover:bg-[#F5EDD6] transition-colors"
             >
               <HugeiconsIcon icon={Minus} className="w-3 h-3" />
@@ -111,6 +112,7 @@ function CartItemCard({
             </span>
             <button
               onClick={() => onUpdateQty(item.id, 1)}
+              aria-label={`Increase quantity of ${item.name}`}
               className="w-8 h-8 flex items-center justify-center text-[#7A5C3E] hover:bg-[#F5EDD6] transition-colors"
             >
               <HugeiconsIcon icon={Plus} className="w-3 h-3" />
@@ -123,6 +125,7 @@ function CartItemCard({
             </span>
             <button
               onClick={() => onRemove(item.id)}
+              aria-label={`Remove ${item.name} from cart`}
               className="w-8 h-8 flex items-center justify-center rounded-lg text-[#A89070] hover:text-red-400 hover:bg-red-50 transition-all"
             >
               <HugeiconsIcon icon={Delete} className="w-4 h-4" />
@@ -140,12 +143,16 @@ function OrderSummary({
   setPromoCode,
   promoApplied,
   onApplyPromo,
+  onRemovePromo,
+  onCheckout,
 }: {
   subtotal: number;
   promoCode: string;
   setPromoCode: (v: string) => void;
   promoApplied: boolean;
   onApplyPromo: () => void;
+  onRemovePromo: () => void;
+  onCheckout: () => void;
 }) {
   return (
     <div
@@ -198,12 +205,14 @@ function OrderSummary({
           Promo Code
         </p>
         {promoApplied ? (
-          <div
-            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
-            style={{ backgroundColor: "#EAF2EC", color: "#4A7C59" }}
-          >
-            <HugeiconsIcon icon={Check} className="w-4 h-4" />
-            Promo code applied!
+          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm" style={{ backgroundColor: "#EAF2EC", color: "#4A7C59" }}>
+            <div className="flex items-center gap-2">
+              <HugeiconsIcon icon={Check} className="w-4 h-4" />
+              Promo code applied!
+            </div>
+            <button onClick={onRemovePromo} className="text-xs underline text-[#4A7C59] hover:text-[#2C1A0E] transition-colors">
+              Remove
+            </button>
           </div>
         ) : (
           <div className="flex gap-2">
@@ -226,6 +235,7 @@ function OrderSummary({
       </div>
 
       <button
+        onClick={onCheckout}
         className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:opacity-90"
         style={{ backgroundColor: "#C8720A" }}
       >
@@ -286,6 +296,14 @@ function EmptyCart() {
 
 function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
   const [added, setAdded] = useState(false);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleAdd = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setAdded(true);
+    timerRef.current = setTimeout(() => setAdded(false), 1800);
+  };
+
   return (
     <div className="group flex flex-col rounded-2xl border border-[#E5D9C0] bg-white overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
       <div className="relative overflow-hidden bg-[#F5EDD6] aspect-[4/3]">
@@ -309,7 +327,8 @@ function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
             {formatPrice(product.price)}
           </span>
           <button
-            onClick={() => { setAdded(true); setTimeout(() => setAdded(false), 1800); }}
+            onClick={handleAdd}
+            aria-label={`Add ${product.name} to cart`}
             className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
             style={{ backgroundColor: added ? "#4A7C59" : "#C8720A" }}
           >
@@ -330,6 +349,10 @@ export default function CartPage() {
   const [promoApplied, setPromoApplied] = useState(false);
 
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  const handleCheckout = () => {
+    // Checkout flow to be wired up with payment integration
+  };
 
   const updateQty = (id: string, delta: number) => {
     setItems((prev) =>
@@ -395,7 +418,14 @@ export default function CartPage() {
                   promoCode={promoCode}
                   setPromoCode={setPromoCode}
                   promoApplied={promoApplied}
-                  onApplyPromo={() => promoCode && setPromoApplied(true)}
+                  onApplyPromo={() => {
+                    if (promoCode) {
+                      setPromoApplied(true);
+                      setPromoCode("");
+                    }
+                  }}
+                  onRemovePromo={() => setPromoApplied(false)}
+                  onCheckout={handleCheckout}
                 />
               </aside>
             </div>
@@ -438,6 +468,7 @@ export default function CartPage() {
             </span>
           </div>
           <button
+            onClick={handleCheckout}
             className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             style={{ backgroundColor: "#C8720A" }}
           >
