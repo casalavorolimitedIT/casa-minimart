@@ -14,9 +14,9 @@ export const CATEGORY_ACCENT: Record<string, string> = {
   _default: "#C8720A",
 };
 
-export function getImageUrl(images: string[]): string {
-  if (images.length > 0) {
-    return `${STORAGE_BASE}${images[0]}`;
+export function getImageUrl(images: string[] | null | undefined): string {
+  if (Array.isArray(images) && images.length > 0) {
+    return `${STORAGE_BASE}${images[0].replace(/^\//, "")}`;
   }
   return "";
 }

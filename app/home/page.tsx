@@ -29,12 +29,17 @@ export default function Home() {
     queryParams: { site_id: SITE_ID },
   });
 
+  const isFetchingRef = useRef(false);
+  useEffect(() => {
+    isFetchingRef.current = isFetchingNextPage;
+  }, [isFetchingNextPage]);
+
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingRef.current) {
           fetchNextPage();
         }
       },
@@ -42,7 +47,7 @@ export default function Home() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isLoading]);
+  }, [hasNextPage, fetchNextPage, isLoading]);
 
   const products = data?.pages.flat().map(adaptInventoryItem) ?? [];
   const grouped = groupByCategory(products);
