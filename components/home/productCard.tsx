@@ -77,6 +77,8 @@ export default function ProductCard({ product }: ProductCardProps) {
           height={600}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 aspect-square"
           loading="lazy"
+          label={product.name}
+          fallbackVariant="initials"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
       </div>
