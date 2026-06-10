@@ -3,7 +3,7 @@ export type StockLevel = "critical" | "low" | "medium" | "plenty";
 export interface Product {
   id: string;
   name: string;
-  price: number;
+  price: number | null;
   stock: number;
   category: string;
   imageUrl: string;
@@ -240,6 +240,62 @@ export function getStockLevel(stock: number): StockLevel {
   return "plenty";
 }
 
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | null): string {
+  if (price === null) return "Price on request";
   return `₦${price.toLocaleString("en-NG")}`;
 }
+
+export const featuredProduct = {
+  id: "fp1",
+  name: "Bio Oil Skincare Oil",
+  subtitle: "Special Care Formula · 60ml",
+  badge: "Best Seller",
+  images: [
+    "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=600&q=80",
+    "https://images.unsplash.com/photo-1570194065650-d99fb4de8b42?w=600&q=80",
+    "https://images.unsplash.com/photo-1591375275624-e80ab2b5e90b?w=600&q=80",
+    "https://images.unsplash.com/photo-1615397349754-cfa2066a298e?w=600&q=80",
+  ],
+  rating: 4.7,
+  reviewCount: 128,
+  price: 18500,
+  deliveryNote: "Free delivery on orders above ₦15,000",
+  description:
+    "Bio-Oil Skincare Oil is a specialist skincare product that helps improve the appearance of scars, stretch marks, and uneven skin tone. The multi-use formula contains PurCellin Oil™ which makes it light and non-greasy.",
+  highlights: ["Dermatologist Tested", "All Skin Types", "Cruelty-Free", "Paraben-Free"],
+  howToUse: [
+    "Apply twice daily in a circular massage motion for a minimum of 3 months.",
+    "For scars: massage into the affected area until fully absorbed.",
+    "For stretch marks: apply to the entire area at risk or already affected.",
+    "For uneven skin tone: apply to any area of uneven skin tone.",
+  ],
+  ingredients:
+    "Triisononanoin, Cetearyl Ethylhexanoate, Isopropyl Myristate, Helianthus Annuus (Sunflower) Seed Oil, Retinyl Palmitate, Calendula Officinalis Flower Extract, Lavandula Angustifolia (Lavender) Oil, Rosmarinus Officinalis (Rosemary) Leaf Oil, Chamomilla Recutita (Matricaria) Flower Extract, Tocopheryl Acetate, Bisabolol, Parfum, CI 26100.",
+};
+
+export const relatedProducts = [
+  {
+    id: "b1",
+    name: "Cocoa Butter Body Lotion",
+    price: 14350,
+    imageUrl: "https://images.unsplash.com/photo-1570194065650-d99fb4de8b42?w=300&q=80",
+  },
+  {
+    id: "b2",
+    name: "Dove Body Cream",
+    price: 6670,
+    imageUrl: "https://images.unsplash.com/photo-1591375275624-e80ab2b5e90b?w=300&q=80",
+  },
+  {
+    id: "b3",
+    name: "Evoluderm Moisturizing Cream",
+    price: 30000,
+    imageUrl: "https://images.unsplash.com/photo-1556228453-efd6c1ff04f6?w=300&q=80",
+  },
+  {
+    id: "b4",
+    name: "Garnier Cleansing Gel",
+    price: 17500,
+    imageUrl: "https://images.unsplash.com/photo-1615397349754-cfa2066a298e?w=300&q=80",
+  },
+];
