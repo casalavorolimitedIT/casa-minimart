@@ -1,7 +1,9 @@
 "use client";
 
-import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { supabaseConfig } from "@/lib/supabase/config";
+
+export const PAGE_SIZE = 20;
 
 type QueryValue = string | number | boolean;
 
@@ -25,9 +27,21 @@ export interface InventoryItemsQueryParams {
 
 export interface InventoryItem {
   id: string;
+  tenant_id: string;
   site_id: string;
   category: string;
-  [key: string]: unknown;
+  name: string;
+  quantity: number;
+  unit: string;
+  images: string[];
+  price: string | null;
+  status: string;
+  received_date: string;
+  vendor: string;
+  last_updated: string;
+  created_at: string;
+  unit_value: unknown;
+  reorder_level: unknown;
 }
 
 export interface GetSiteCategoriesPayload {
@@ -142,5 +156,21 @@ export function useSiteCategories(
     queryKey: ["site-categories", payload],
     queryFn: () => fetchSiteCategories(payload),
     ...options,
+  });
+}
+
+export function useInfiniteInventoryItems(
+  params: Omit<InventoryItemsQueryParams, "limit" | "offset">,
+) {
+  return useInfiniteQuery({
+    queryKey: ["inventory-items-infinite", params],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      fetchInventoryItems({ ...params, limit: PAGE_SIZE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: InventoryItem[],
+      _: InventoryItem[][],
+      lastPageParam: number,
+    ) => (lastPage.length === PAGE_SIZE ? lastPageParam + PAGE_SIZE : undefined),
   });
 }
