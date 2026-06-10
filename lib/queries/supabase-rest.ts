@@ -42,11 +42,16 @@ export interface InventoryItem {
   created_at: string;
   unit_value: unknown;
   reorder_level: unknown;
+  description?: string;
 }
 
 export interface GetSiteCategoriesPayload {
   p_site_id: string;
   [key: string]: unknown;
+}
+
+export interface SiteCategory {
+  category: string;
 }
 
 function buildUrl(path: string, searchParams?: URLSearchParams): string {
@@ -124,7 +129,7 @@ export async function fetchSiteCategories(payload: GetSiteCategoriesPayload) {
     },
   );
 
-  return handleResponse<unknown[]>(response);
+  return handleResponse<SiteCategory[]>(response);
 }
 
 type InventoryItemsQueryOptions = Omit<
@@ -144,7 +149,7 @@ export function useInventoryItems(
 }
 
 type SiteCategoriesQueryOptions = Omit<
-  UseQueryOptions<unknown[], Error>,
+  UseQueryOptions<SiteCategory[], Error>,
   "queryKey" | "queryFn"
 >;
 
@@ -152,7 +157,7 @@ export function useSiteCategories(
   payload: GetSiteCategoriesPayload,
   options?: SiteCategoriesQueryOptions,
 ) {
-  return useQuery<unknown[], Error>({
+  return useQuery<SiteCategory[], Error>({
     queryKey: ["site-categories", payload],
     queryFn: () => fetchSiteCategories(payload),
     ...options,

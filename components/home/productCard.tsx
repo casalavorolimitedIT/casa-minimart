@@ -63,7 +63,7 @@ export default function ProductCard({ product }: ProductCardProps) {
               cfg.bg,
             )}
           >
-            {2}
+            {stockLabel as string}
           </span>
         </div>
       )}

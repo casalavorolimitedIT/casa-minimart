@@ -385,8 +385,8 @@ export default function SmartImage({
   const handleLoad = useCallback(() => setStatus("loaded"), []);
   const handleError = useCallback(() => setStatus("error"), []);
 
-  const showFallback = status === "error";
-  const showSpinner = status === "loading" && showLoader;
+  const showFallback = status === "error" || !imageProps.src;
+  const showSpinner = status === "loading" && showLoader && !!imageProps.src;
 
   return (
     <div

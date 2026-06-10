@@ -21,6 +21,11 @@ export function getImageUrl(images: string[] | null | undefined): string {
   return "";
 }
 
+export function getAllImageUrls(images: string[] | null | undefined): string[] {
+  if (!Array.isArray(images) || images.length === 0) return [];
+  return images.map((img) => `${STORAGE_BASE}${img.replace(/^\//, "")}`);
+}
+
 export function adaptInventoryItem(item: InventoryItem): Product {
   const parsed = item.price !== null ? parseFloat(item.price) : null;
   return {

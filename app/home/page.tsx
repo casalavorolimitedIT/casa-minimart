@@ -7,7 +7,10 @@ import ProductSection from "@/components/home/productSection";
 import SidebarComponent from "@/components/home/sidebar";
 import NavbarComponents from "@/components/ui/header";
 import { adaptInventoryItem, CATEGORY_ACCENT, groupByCategory } from "@/lib/adapters";
-import { useInfiniteInventoryItems } from "@/lib/queries/supabase-rest";
+import {
+  useInfiniteInventoryItems,
+  useSiteCategories,
+} from "@/lib/queries/supabase-rest";
 import { useEffect, useRef, useState } from "react";
 
 const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
@@ -17,6 +20,16 @@ export default function Home() {
   const [cartCount, setCartCount] = useState(2);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
+  const { data: categoriesData, isLoading: categoriesLoading } =
+    useSiteCategories({ p_site_id: SITE_ID });
+
+  const categories = categoriesData ?? [];
+
+  const queryParams =
+    activeFilter === "all"
+      ? { site_id: SITE_ID }
+      : { site_id: SITE_ID, category: activeFilter };
+
   const {
     data,
     error,
@@ -24,10 +37,7 @@ export default function Home() {
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
-  } = useInfiniteInventoryItems({
-    select: "*",
-    queryParams: { site_id: SITE_ID },
-  });
+  } = useInfiniteInventoryItems({ select: "*", queryParams });
 
   const isFetchingRef = useRef(false);
   useEffect(() => {
@@ -57,12 +67,14 @@ export default function Home() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: "var(--cream-bg)" }}
     >
-      <NavbarComponents cartCount={cartCount} />
+      <NavbarComponents cartCount={cartCount} categories={categories} />
 
       <div className="max-w-7xl mx-auto w-full px-4 py-6 flex gap-6 flex-1">
         <SidebarComponent
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
         />
 
         <main className="flex-1 min-w-0 space-y-10">

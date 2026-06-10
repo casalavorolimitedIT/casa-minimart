@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,81 +22,50 @@ import {
   ChevronDown,
   Coffee,
   Cookie,
+  Droplets,
   Heart,
   Home,
-  Leaf,
   MapPin,
   Package,
   Search,
   ShoppingCart,
   Sparkles,
-  Star,
-  UtensilsCrossed,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { type SiteCategory } from "@/lib/queries/supabase-rest";
 
-const categoryGroups = [
-  {
-    title: "Fresh & Pantry",
-    items: [
-      {
-        title: "Fresh Produce",
-        href: "#",
-        icon: Leaf,
-        desc: "Fruits, vegetables, herbs",
-      },
-      {
-        title: "Pantry Staples",
-        href: "#",
-        icon: Package,
-        desc: "Rice, pasta, canned goods",
-      },
-      {
-        title: "Best Sellers",
-        href: "#",
-        icon: Star,
-        desc: "What everyone's buying",
-      },
-    ],
-  },
-  {
-    title: "Drinks & Snacks",
-    items: [
-      {
-        title: "Tea & Coffee",
-        href: "#",
-        icon: Coffee,
-        desc: "Morning pick-me-ups",
-      },
-      {
-        title: "Snacks",
-        href: "#",
-        icon: Cookie,
-        desc: "Chips, sweets, biscuits",
-      },
-    ],
-  },
-  {
-    title: "Home & Care",
-    items: [
-      {
-        title: "Household",
-        href: "#",
-        icon: Home,
-        desc: "Cleaning & home essentials",
-      },
-      {
-        title: "Toiletries",
-        href: "#",
-        icon: UtensilsCrossed,
-        desc: "Personal care basics",
-      },
-    ],
-  },
-];
+const CATEGORY_ICONS: Record<string, typeof Package> = {
+  General: Package,
+  Toiletries: Droplets,
+  Bodycare: Sparkles,
+  Beverages: Coffee,
+  Snacks: Cookie,
+  Pantry: Package,
+  Household: Home,
+};
 
-export default function NavbarComponents({ cartCount = 2 }: { cartCount?: number }) {
+function categorySlug(name: string) {
+  return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+export default function NavbarComponents({
+  cartCount = 2,
+  categories = [],
+}: {
+  cartCount?: number;
+  categories?: SiteCategory[];
+}) {
+  const router = useRouter();
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const trimmed = searchValue.trim();
+    if (trimmed) {
+      router.push(`/home/search?q=${encodeURIComponent(trimmed)}`);
+    }
+  };
 
   return (
     <header
@@ -107,12 +77,11 @@ export default function NavbarComponents({ cartCount = 2 }: { cartCount?: number
     >
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center gap-4">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2 shrink-0">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ backgroundColor: "var(--espresso)" }}
-          >
-            <span className="text-white text-xs font-bold font-display">C</span>
+        <a href="/home" className="flex items-center gap-2 shrink-0">
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-700">
+            <span className="text-white  text-xs font-bold font-display">
+              C
+            </span>
           </div>
           <span
             className="hidden sm:block font-display font-bold text-base leading-tight"
@@ -136,51 +105,58 @@ export default function NavbarComponents({ cartCount = 2 }: { cartCount?: number
                 Categories
               </NavigationMenuTrigger>
               <NavigationMenuContent>
-                <div className="grid grid-cols-3 gap-6 p-6 w-[580px]">
-                  {categoryGroups.map((group) => (
-                    <div key={group.title}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-[#A89070] mb-3">
-                        {group.title}
-                      </p>
-                      <ul className="space-y-1">
-                        {group.items.map((item) => (
-                          <li key={item.title}>
+                {categories.length > 0 ? (
+                  <div className="p-4 w-[320px]">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#A89070] mb-3">
+                      Shop by Category
+                    </p>
+                    <ul className="grid grid-cols-2 gap-1">
+                      {categories.map((cat) => {
+                        const icon = CATEGORY_ICONS[cat.category] ?? Package;
+                        return (
+                          <li key={cat.category}>
                             <NavigationMenuLink
                               render={
-                                <a
-                                  href={item.href}
-                                  className="flex items-start gap-2.5 rounded-lg p-2 hover:bg-[#F5EDD6] transition-colors group"
+                                <Link
+                                  href={`/home/category/${categorySlug(cat.category)}`}
+                                  className="flex items-center gap-2.5 rounded-lg p-2 hover:bg-[#F5EDD6] transition-colors group"
                                 >
                                   <HugeiconsIcon
-                                    icon={item.icon}
-                                    className="w-4 h-4 mt-0.5 text-[#C8720A] shrink-0"
+                                    icon={icon}
+                                    className="w-4 h-4 text-[#C8720A] shrink-0"
                                   />
-                                  <div>
-                                    <p className="text-sm font-semibold text-[#2C1A0E] group-hover:text-[#C8720A] transition-colors">
-                                      {item.title}
-                                    </p>
-                                    <p className="text-[11px] text-[#A89070]">
-                                      {item.desc}
-                                    </p>
-                                  </div>
-                                </a>
+                                  <span className="text-sm font-semibold text-[#2C1A0E] group-hover:text-[#C8720A] transition-colors">
+                                    {cat.category}
+                                  </span>
+                                </Link>
                               }
                             />
                           </li>
-                        ))}
-                      </ul>
+                        );
+                      })}
+                    </ul>
+                    <div className="border-t border-[#DDD0B3] mt-4 pt-3">
+                      <Link
+                        href="/home"
+                        className="flex items-center gap-2 text-sm font-semibold text-[#C8720A] hover:underline"
+                      >
+                        <HugeiconsIcon icon={Sparkles} className="w-4 h-4" />
+                        View all products →
+                      </Link>
                     </div>
-                  ))}
-                </div>
-                <div className="border-t border-[#DDD0B3] p-4 bg-[#F5EDD6]">
-                  <a
-                    href="#"
-                    className="flex items-center gap-2 text-sm font-semibold text-[#C8720A] hover:underline"
-                  >
-                    <HugeiconsIcon icon={Sparkles} className="w-4 h-4" />
-                    View all products →
-                  </a>
-                </div>
+                  </div>
+                ) : (
+                  <div className="p-4 w-[280px]">
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className="h-9 rounded-lg bg-[#F5EDD6] animate-pulse"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </NavigationMenuContent>
             </NavigationMenuItem>
 
@@ -205,7 +181,8 @@ export default function NavbarComponents({ cartCount = 2 }: { cartCount?: number
         </NavigationMenu>
 
         {/* Search */}
-        <div
+        <form
+          onSubmit={handleSearch}
           className={cn(
             "flex-1 max-w-md relative transition-all duration-200",
             searchFocused ? "max-w-lg" : "",
@@ -217,12 +194,14 @@ export default function NavbarComponents({ cartCount = 2 }: { cartCount?: number
             style={{ color: "var(--amber-brand)" }}
           />
           <Input
-            placeholder="Search for everyday essentials in Abuja..."
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Search for everyday essentials"
             className="pl-9 pr-3 h-9 text-sm"
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
           />
-        </div>
+        </form>
 
         {/* Right actions */}
         <div className="flex items-center gap-1 ml-auto shrink-0">

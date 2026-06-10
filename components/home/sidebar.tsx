@@ -1,49 +1,45 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Coffee, Cookie, Droplets, FileText, Grid, HelpCircleIcon, Home, Leaf, Package, Star, Truck } from "@hugeicons/core-free-icons";
+import {
+  Coffee,
+  Cookie,
+  Droplets,
+  FileText,
+  Grid,
+  HelpCircleIcon,
+  Home,
+  Package,
+  Sparkles,
+  Truck,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { type SiteCategory } from "@/lib/queries/supabase-rest";
 
-
-const filters = [
-  { id: "all", label: "All Products", icon: Grid },
-  { id: "best-sellers", label: "Best Sellers", icon: Star },
-  { id: "fresh-produce", label: "Fresh Produce", icon: Leaf },
-  { id: "pantry", label: "Pantry", icon: Package },
-  { id: "household", label: "Household", icon: Home },
-];
-
-const featuredCategories = [
-  {
-    id: "toiletries",
-    label: "Toiletries",
-    icon: Droplets,
-    desc: "Essentials for your daily routine",
-  },
-  {
-    id: "tea-coffee",
-    label: "Tea & Coffee",
-    icon: Coffee,
-    desc: "Morning pick-me-ups",
-  },
-  {
-    id: "snacks",
-    label: "Snacks",
-    icon: Cookie,
-    desc: "Delicious treats for any time",
-  },
-];
+const CATEGORY_ICONS: Record<string, typeof Package> = {
+  General: Grid,
+  Toiletries: Droplets,
+  Bodycare: Sparkles,
+  Beverages: Coffee,
+  Snacks: Cookie,
+  Pantry: Package,
+  Household: Home,
+};
 
 interface SidebarProps {
   activeFilter: string;
   onFilterChange: (id: string) => void;
+  categories?: SiteCategory[];
+  categoriesLoading?: boolean;
 }
 
 export default function SidebarComponent({
   activeFilter,
   onFilterChange,
+  categories = [],
+  categoriesLoading = false,
 }: SidebarProps) {
   return (
     <aside className="w-52 shrink-0 hidden lg:block">
@@ -57,67 +53,55 @@ export default function SidebarComponent({
           Abuja Delivery
         </div>
 
-        {/* Filters */}
+        {/* Category filters */}
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-[#A89070] mb-2 px-1">
-            Filters
+            Categories
           </p>
           <nav className="space-y-0.5">
-            {filters.map((f) => (
-              <button
-                key={f.id}
-                onClick={() => onFilterChange(f.id)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                  activeFilter === f.id
-                    ? "bg-[#FBF5E6] text-[#C8720A] font-semibold border border-[#C8720A]/25"
-                    : "text-[#4A2E1A] hover:bg-[#F5EDD6] font-medium"
-                }`}
-              >
-                <HugeiconsIcon icon={f.icon} className="w-4 h-4 shrink-0" />
-                {f.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+            {/* All Products — always first */}
+            <button
+              type="button"
+              onClick={() => onFilterChange("all")}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                activeFilter === "all"
+                  ? "bg-[#FBF5E6] text-[#C8720A] font-semibold border border-[#C8720A]/25"
+                  : "text-[#4A2E1A] hover:bg-[#F5EDD6] font-medium"
+              }`}
+            >
+              <HugeiconsIcon icon={Grid} className="w-4 h-4 shrink-0" />
+              All Products
+            </button>
 
-        <Separator />
-
-        {/* Featured categories */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#A89070] mb-2 px-1">
-            Featured
-          </p>
-          <nav className="space-y-1">
-            {featuredCategories.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => onFilterChange(c.id)}
-                className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-left transition-all duration-150 group ${
-                  activeFilter === c.id
-                    ? "bg-[#FBF5E6] border border-[#C8720A]/25"
-                    : "hover:bg-[#F5EDD6]"
-                }`}
-              >
-                <HugeiconsIcon
-                  icon={c.icon}
-                  className={`w-4 h-4 shrink-0 mt-0.5 ${
-                    activeFilter === c.id ? "text-[#C8720A]" : "text-[#7A5C3E]"
+            {/* Live categories */}
+            {categoriesLoading && (
+              <div className="space-y-1 px-1 pt-1">
+                {[1, 2, 3, 4].map((i) => (
+                  <div
+                    key={i}
+                    className="h-8 rounded-lg bg-[#F5EDD6] animate-pulse"
+                  />
+                ))}
+              </div>
+            )}
+            {categories.map((cat) => {
+              const icon = CATEGORY_ICONS[cat.category] ?? Package;
+              return (
+                <button
+                  key={cat.category}
+                  type="button"
+                  onClick={() => onFilterChange(cat.category)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                    activeFilter === cat.category
+                      ? "bg-[#FBF5E6] text-[#C8720A] font-semibold border border-[#C8720A]/25"
+                      : "text-[#4A2E1A] hover:bg-[#F5EDD6] font-medium"
                   }`}
-                />
-                <div>
-                  <p
-                    className={`text-sm font-semibold leading-tight ${
-                      activeFilter === c.id
-                        ? "text-[#C8720A]"
-                        : "text-[#2C1A0E]"
-                    }`}
-                  >
-                    {c.label}
-                  </p>
-                  <p className="text-[11px] text-[#A89070] mt-0.5">{c.desc}</p>
-                </div>
-              </button>
-            ))}
+                >
+                  <HugeiconsIcon icon={icon} className="w-4 h-4 shrink-0" />
+                  {cat.category}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
