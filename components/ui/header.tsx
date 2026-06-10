@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -249,21 +250,23 @@ export default function NavbarComponents({ cartCount = 2 }: { cartCount?: number
           </Button>
 
           {/* Cart */}
-          <Button variant="ghost" size="icon" className="relative">
-            <HugeiconsIcon
-              icon={ShoppingCart}
-              className="w-4.5 h-4.5"
-              style={{ color: "var(--espresso)" }}
-            />
-            {cartCount > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
-                style={{ backgroundColor: "#C8720A" }}
-              >
-                {cartCount}
-              </span>
-            )}
-          </Button>
+          <Link href="/home/cart">
+            <Button variant="ghost" size="icon" className="relative">
+              <HugeiconsIcon
+                icon={ShoppingCart}
+                className="w-4.5 h-4.5"
+                style={{ color: "var(--espresso)" }}
+              />
+              {cartCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                  style={{ backgroundColor: "#C8720A" }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </Button>
+          </Link>
         </div>
       </div>
     </header>
