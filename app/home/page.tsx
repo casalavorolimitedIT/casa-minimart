@@ -42,7 +42,7 @@ export default function Home() {
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, isLoading]);
 
   const products = data?.pages.flat().map(adaptInventoryItem) ?? [];
   const grouped = groupByCategory(products);
@@ -89,6 +89,12 @@ export default function Home() {
                   accentColor={CATEGORY_ACCENT[category] ?? CATEGORY_ACCENT._default}
                 />
               ))}
+
+              {Object.entries(grouped).length === 0 && (
+                <p className="text-sm text-center py-10" style={{ color: "var(--espresso)" }}>
+                  No products available.
+                </p>
+              )}
 
               <div ref={sentinelRef} className="h-4" />
 
