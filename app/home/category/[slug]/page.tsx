@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Footer from "@/components/home/Footer";
 import ProductCard from "@/components/home/productCard";
@@ -30,7 +30,6 @@ export default function CategoryPage() {
   const router = useRouter();
   const slug = params.slug as string;
 
-  const [cartCount] = useState(2);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data: categoriesData, isLoading: categoriesLoading } =
@@ -94,7 +93,7 @@ export default function CategoryPage() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: "var(--cream-bg)" }}
     >
-      <NavbarComponents cartCount={cartCount} categories={categories} />
+      <NavbarComponents categories={categories} />
 
       <div className="max-w-7xl mx-auto w-full px-4 py-6 flex gap-6 flex-1">
         <SidebarComponent

@@ -388,7 +388,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FAF4E8" }}>
-      <NavbarComponents cartCount={items.length} categories={categories} />
+      <NavbarComponents categories={categories} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-5 py-6 pb-28 lg:pb-10">
         <Link

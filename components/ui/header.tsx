@@ -33,6 +33,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { type SiteCategory } from "@/lib/queries/supabase-rest";
+import { useAppSelector } from "@/store/hooks";
+import { selectCartCount } from "@/store/cartSlice";
 
 const CATEGORY_ICONS: Record<string, typeof Package> = {
   General: Package,
@@ -49,12 +51,11 @@ function categorySlug(name: string) {
 }
 
 export default function NavbarComponents({
-  cartCount = 2,
   categories = [],
 }: {
-  cartCount?: number;
   categories?: SiteCategory[];
 }) {
+  const cartCount = useAppSelector(selectCartCount);
   const router = useRouter();
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchValue, setSearchValue] = useState("");

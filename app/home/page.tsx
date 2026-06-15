@@ -17,7 +17,6 @@ const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState("all");
-  const [cartCount, setCartCount] = useState(2);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data: categoriesData, isLoading: categoriesLoading } =
@@ -67,7 +66,7 @@ export default function Home() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: "var(--cream-bg)" }}
     >
-      <NavbarComponents cartCount={cartCount} categories={categories} />
+      <NavbarComponents categories={categories} />
 
       <div className="max-w-7xl mx-auto w-full px-4 py-6 flex gap-6 flex-1">
         <SidebarComponent

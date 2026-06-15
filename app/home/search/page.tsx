@@ -192,7 +192,6 @@ function SearchContent({ categories, categoriesLoading }: SearchContentProps) {
 }
 
 export default function SearchPage() {
-  const [cartCount] = useState(2);
   const { data: categoriesData, isLoading: categoriesLoading } =
     useSiteCategories({
       p_site_id: SITE_ID,
@@ -204,7 +203,7 @@ export default function SearchPage() {
       className="min-h-screen flex flex-col"
       style={{ backgroundColor: "var(--cream-bg)" }}
     >
-      <NavbarComponents cartCount={cartCount} categories={categories} />
+      <NavbarComponents categories={categories} />
       <Suspense
         fallback={
           <div className="flex-1 flex items-center justify-center py-20">

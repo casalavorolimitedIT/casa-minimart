@@ -26,7 +26,11 @@ import {
   useSiteCategories,
   type InventoryItem,
 } from "@/lib/queries/supabase-rest";
-import { getAllImageUrls, adaptInventoryItem, CATEGORY_ACCENT } from "@/lib/adapters";
+import {
+  getAllImageUrls,
+  adaptInventoryItem,
+  CATEGORY_ACCENT,
+} from "@/lib/adapters";
 
 const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
 
@@ -44,7 +48,7 @@ interface DetailProduct {
   rating?: number;
   reviewCount?: number;
   deliveryNote?: string;
-  description?: string;
+  note?: string;
   highlights: string[];
   howToUse: string[];
   ingredients?: string;
@@ -59,7 +63,7 @@ function adaptToDetail(item: InventoryItem): DetailProduct {
     price: parsed !== null && !isNaN(parsed) ? parsed : null,
     stock: item.quantity,
     images: getAllImageUrls(item.images),
-    description: item.description,
+    note: item.note ?? undefined,
     highlights: [],
     howToUse: [],
   };
@@ -189,9 +193,7 @@ function ImageGallery({
             </button>
             <button
               type="button"
-              onClick={() =>
-                setActive((a) => (a + 1) % displayImages.length)
-              }
+              onClick={() => setActive((a) => (a + 1) % displayImages.length)}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center hover:bg-white transition-colors"
             >
               <HugeiconsIcon
@@ -272,9 +274,7 @@ function QuantitySelector({ max }: { max: number }) {
           onClick={() => setQty((q) => Math.min(max, q + 1))}
           disabled={atMax}
           className={`w-9 h-9 flex items-center justify-center text-[#7A5C3E] transition-colors ${
-            atMax
-              ? "opacity-30 cursor-not-allowed"
-              : "hover:bg-[#F5EDD6]"
+            atMax ? "opacity-30 cursor-not-allowed" : "hover:bg-[#F5EDD6]"
           }`}
         >
           <HugeiconsIcon icon={Plus} className="w-3.5 h-3.5" />
@@ -330,7 +330,11 @@ function RelatedCard({ product }: { product: Product }) {
               setTimeout(() => setAdded(false), 1800);
             }}
             className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
-            style={{ backgroundColor: added ? "#4A7C59" : "#C8720A" }}
+            style={{
+              backgroundColor: added ? "#4A7C59" : "#C8720A",
+              opacity: product.stock === 0 ? 0.6 : 1,
+              cursor: product.stock === 0 ? "not-allowed" : "pointer",
+            }}
           >
             {added ? (
               <HugeiconsIcon icon={Check} className="w-3.5 h-3.5 text-white" />
@@ -356,12 +360,15 @@ export default function ProductDetailPage() {
   const categories = categoriesData ?? [];
 
   /* ── Fetch the product by ID ── */
-  const { data: productData, isLoading: productLoading, error: productError } =
-    useInventoryItems({
-      select: "*",
-      queryParams: { id: productId, site_id: SITE_ID },
-      limit: 1,
-    });
+  const {
+    data: productData,
+    isLoading: productLoading,
+    error: productError,
+  } = useInventoryItems({
+    select: "*",
+    queryParams: { id: productId, site_id: SITE_ID },
+    limit: 1,
+  });
 
   const rawProduct = productData?.[0];
   const product: DetailProduct | null = rawProduct
@@ -394,11 +401,8 @@ export default function ProductDetailPage() {
   /* ── Loading state ── */
   if (productLoading) {
     return (
-      <div
-        className="min-h-screen"
-        style={{ backgroundColor: "#FAF4E8" }}
-      >
-        <NavbarComponents cartCount={0} categories={categories} />
+      <div className="min-h-screen" style={{ backgroundColor: "#FAF4E8" }}>
+        <NavbarComponents categories={categories} />
         <div className="max-w-7xl mx-auto px-5 py-20 flex items-center justify-center">
           <p className="text-sm" style={{ color: "var(--espresso)" }}>
             Loading product…
@@ -411,11 +415,8 @@ export default function ProductDetailPage() {
   /* ── Not found / error state ── */
   if (productError || !product) {
     return (
-      <div
-        className="min-h-screen"
-        style={{ backgroundColor: "#FAF4E8" }}
-      >
-        <NavbarComponents cartCount={0} categories={categories} />
+      <div className="min-h-screen" style={{ backgroundColor: "#FAF4E8" }}>
+        <NavbarComponents categories={categories} />
         <div className="max-w-7xl mx-auto px-5 py-20 text-center">
           <p
             className="text-lg font-semibold"
@@ -439,7 +440,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#FAF4E8" }}>
-      <NavbarComponents cartCount={0} categories={categories} />
+      <NavbarComponents categories={categories} />
 
       <main className="max-w-7xl mx-auto px-5 py-6 space-y-10">
         {/* Breadcrumb */}
@@ -459,7 +460,10 @@ export default function ProductDetailPage() {
             {/* Category pill */}
             <span
               className="self-start text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-              style={{ backgroundColor: `${accentColor}20`, color: accentColor }}
+              style={{
+                backgroundColor: `${accentColor}20`,
+                color: accentColor,
+              }}
             >
               {product.category}
             </span>
@@ -477,12 +481,13 @@ export default function ProductDetailPage() {
                   {product.subtitle}
                 </p>
               )}
-              {product.rating !== undefined && product.reviewCount !== undefined && (
-                <StarRating
-                  rating={product.rating}
-                  count={product.reviewCount}
-                />
-              )}
+              {product.rating !== undefined &&
+                product.reviewCount !== undefined && (
+                  <StarRating
+                    rating={product.rating}
+                    count={product.reviewCount}
+                  />
+                )}
             </div>
 
             {/* Divider */}
@@ -508,9 +513,9 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Description */}
-            {product.description && (
+            {product.note && (
               <p className="text-sm text-[#5A3A20] leading-relaxed">
-                {product.description}
+                {product.note}
               </p>
             )}
 
@@ -539,7 +544,11 @@ export default function ProductDetailPage() {
                 <p className="text-xs font-semibold text-[#A89070] uppercase tracking-wider">
                   Quantity
                 </p>
-                {product.stock <= 5 ? (
+                {product.stock === 0 ? (
+                  <p className="text-xs font-semibold text-gray-400">
+                    Out of stock
+                  </p>
+                ) : product.stock <= 5 ? (
                   <p className="text-xs font-semibold text-orange-500">
                     Only {product.stock} left
                   </p>
@@ -549,7 +558,7 @@ export default function ProductDetailPage() {
                   </p>
                 )}
               </div>
-              <QuantitySelector max={product.stock} />
+              {product.stock > 0 && <QuantitySelector max={product.stock} />}
             </div>
 
             {/* CTAs */}
@@ -557,9 +566,15 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={handleAddToCart}
+                disabled={product.stock === 0}
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:scale-[0.98]"
                 style={{
-                  backgroundColor: addedToCart ? "#4A7C59" : "#C8720A",
+                  backgroundColor: addedToCart
+                    ? "#4A7C59"
+                    : product.stock === 0
+                      ? "#A89070"
+                      : "#C8720A",
+                  cursor: product.stock === 0 ? "not-allowed" : "pointer",
                 }}
               >
                 {addedToCart ? (
@@ -567,6 +582,8 @@ export default function ProductDetailPage() {
                     <HugeiconsIcon icon={Check} className="w-4 h-4" /> Added to
                     Cart!
                   </>
+                ) : product.stock === 0 ? (
+                  "Out of Stock"
                 ) : (
                   <>
                     <HugeiconsIcon icon={ShoppingCart} className="w-4 h-4" />{" "}
@@ -577,7 +594,12 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm border-2 transition-all duration-200 active:scale-[0.98] hover:bg-[#FBF5E6]"
-                style={{ borderColor: "#C8720A", color: "#C8720A" }}
+                style={{
+                  borderColor: "#C8720A",
+                  color: "#C8720A",
+                  opacity: product.stock === 0 ? 0.6 : 1,
+                  cursor: product.stock === 0 ? "not-allowed" : "pointer",
+                }}
               >
                 Buy Now
               </button>
