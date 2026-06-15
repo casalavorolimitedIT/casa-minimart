@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Minus,
   Plus,
@@ -10,7 +12,6 @@ import {
   Delete,
   Lock,
   ShoppingBag,
-  CouponPercentIcon as CouponPercent,
   MessageCircle,
   Check,
 } from "@hugeicons/core-free-icons";
@@ -19,48 +20,21 @@ import { formatPrice, relatedProducts } from "@/lib/data";
 import SmartImage from "@/components/custom/smart-images";
 import NavbarComponents from "@/components/ui/header";
 import Footer from "@/components/home/Footer";
-import { useSiteCategories } from "@/lib/queries/supabase-rest";
+import {
+  useSiteCategories,
+  fetchInventoryItems,
+} from "@/lib/queries/supabase-rest";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  removeItem,
+  updateQty,
+  syncWithServer,
+  selectCartItems,
+  selectCartTotal,
+  addItem,
+  type CartItem,
+} from "@/store/cartSlice";
 
-const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
-
-type CartItem = {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  qty: number;
-  imageUrl: string;
-};
-
-const INITIAL_CART: CartItem[] = [
-  {
-    id: "t1",
-    name: "Gillette Shaving Stick",
-    category: "Toiletries",
-    price: 20000,
-    qty: 1,
-    imageUrl:
-      "https://images.unsplash.com/photo-1625772452859-1c03d884dcd7?w=300&q=80",
-  },
-  {
-    id: "t2",
-    name: "Kids Oral B Toothbrush",
-    category: "Toiletries",
-    price: 20000,
-    qty: 2,
-    imageUrl:
-      "https://images.unsplash.com/photo-1607613009820-a29f7bb81c04?w=300&q=80",
-  },
-  {
-    id: "t3",
-    name: "Sensodyne Toothpaste",
-    category: "Toiletries",
-    price: 7840,
-    qty: 1,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=300&q=80",
-  },
-];
 
 function CartItemCard({
   item,
@@ -311,11 +285,26 @@ function EmptyCart() {
 }
 
 function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
-  const [added, setAdded] = useState(false);
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(selectCartItems);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [added, setAdded] = React.useState(false);
+
+  const cartItem = cartItems.find((i) => i.id === product.id);
+  const inCart = (cartItem?.qty ?? 0) > 0;
 
   const handleAdd = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    dispatch(
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        category: "General",
+        qty: 1,
+      }),
+    );
     setAdded(true);
     timerRef.current = setTimeout(() => setAdded(false), 1800);
   };
@@ -346,10 +335,10 @@ function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
             onClick={handleAdd}
             aria-label={`Add ${product.name} to cart`}
             className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
-            style={{ backgroundColor: added ? "#4A7C59" : "#C8720A" }}
+            style={{ backgroundColor: added || inCart ? "#4A7C59" : "#C8720A" }}
           >
             <HugeiconsIcon
-              icon={added ? Check : Plus}
+              icon={added || inCart ? Check : Plus}
               className="w-3.5 h-3.5 text-white"
             />
           </button>
@@ -359,31 +348,68 @@ function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
   );
 }
 
+const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
+
 export default function CartPage() {
-  const [items, setItems] = useState<CartItem[]>(INITIAL_CART);
-  const [promoCode, setPromoCode] = useState("");
-  const [promoApplied, setPromoApplied] = useState(false);
-  const { data: categoriesData, isLoading: categoriesLoading } =
-    useSiteCategories({
-      p_site_id: SITE_ID,
-    });
+  const dispatch = useAppDispatch();
+  const items = useAppSelector(selectCartItems);
+  const subtotal = useAppSelector(selectCartTotal);
+  const [promoCode, setPromoCode] = React.useState("");
+  const [promoApplied, setPromoApplied] = React.useState(false);
+  const hasSynced = useRef(false);
+
+  const { data: categoriesData } = useSiteCategories({ p_site_id: SITE_ID });
   const categories = categoriesData ?? [];
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+
+  const cartIds = items.map((i) => i.id);
+
+  const { data: serverItems } = useQuery({
+    queryKey: ["cart-sync", cartIds.join(",")],
+    queryFn: () =>
+      fetchInventoryItems({
+        queryParams: {
+          id: `in.(${cartIds.join(",")})`,
+          site_id: SITE_ID,
+        },
+      }),
+    enabled: cartIds.length > 0,
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (!serverItems || hasSynced.current) return;
+    hasSynced.current = true;
+
+    const anyChange = items.some((item) => {
+      const server = serverItems.find((s) => s.id === item.id);
+      if (!server || server.quantity === 0) return true;
+      if (item.qty > server.quantity) return true;
+      const serverPrice =
+        server.price !== null ? parseFloat(server.price) : NaN;
+      if (!isNaN(serverPrice) && serverPrice !== item.price) return true;
+      return false;
+    });
+
+    dispatch(syncWithServer(serverItems));
+
+    if (anyChange) {
+      toast("Some items were updated to match current availability");
+    }
+  }, [serverItems]);
 
   const handleCheckout = () => {
     // Checkout flow to be wired up with payment integration
   };
 
-  const updateQty = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item,
-      ),
-    );
+  const handleUpdateQty = (id: string, delta: number) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    dispatch(updateQty({ id, qty: item.qty + delta }));
   };
 
-  const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  const handleRemoveItem = (id: string) => {
+    dispatch(removeItem(id));
   };
 
   return (
@@ -425,8 +451,8 @@ export default function CartPage() {
                     <CartItemCard
                       key={item.id}
                       item={item}
-                      onUpdateQty={updateQty}
-                      onRemove={removeItem}
+                      onUpdateQty={handleUpdateQty}
+                      onRemove={handleRemoveItem}
                     />
                   ))}
                 </div>
