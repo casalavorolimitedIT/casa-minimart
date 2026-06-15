@@ -18,10 +18,12 @@ const localStorageMiddleware: Middleware =
   (storeApi) => (next) => (action) => {
     const result = next(action);
     try {
-      const state = storeApi.getState() as { cart: CartState };
-      localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+      if (typeof window !== "undefined") {
+        const state = storeApi.getState() as RootState;
+        localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+      }
     } catch {
-      // localStorage unavailable (e.g. private browsing quota exceeded)
+      // QuotaExceededError or other storage errors
     }
     return result;
   };
