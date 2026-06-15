@@ -1,6 +1,5 @@
+// components/home/productCard.tsx
 "use client";
-
-import { useState } from "react";
 
 import { type Product, formatPrice, getStockLevel } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -9,12 +8,15 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import SmartImage from "../custom/smart-images";
 import { Button } from "../ui/button";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addItem, selectCartItems } from "@/store/cartSlice";
 
 interface ProductCardProps {
   product: Product;
 }
 
 const stockConfig = {
+  out: { label: "Out of stock", variant: "low" as const, bg: "bg-gray-400" },
   critical: { label: "Only 1 left", variant: "low" as const, bg: "bg-red-500" },
   low: {
     label: (n: number) => `Only ${n} left`,
@@ -30,20 +32,35 @@ const stockConfig = {
 };
 
 export default function ProductCard({ product }: ProductCardProps) {
-  const [added, setAdded] = useState(false);
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(selectCartItems);
   const level = getStockLevel(product.stock);
   const cfg = stockConfig[level];
 
   const stockLabel =
-    level === "critical"
+    level === "out" || level === "critical" || level === "plenty"
       ? cfg.label
-      : level === "plenty"
-        ? cfg.label
-        : (cfg.label as (n: number) => string)(product.stock);
+      : (cfg.label as (n: number) => string)(product.stock);
 
-  const handleAdd = () => {
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+  const outOfStock = level === "out";
+  const cartItem = cartItems.find((i) => i.id === product.id);
+  const cartQty = cartItem?.qty ?? 0;
+  const atMax = cartQty >= product.stock;
+  const inCart = cartQty > 0;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (outOfStock || atMax || product.price === null) return;
+    dispatch(
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        category: product.category,
+        qty: 1,
+      }),
+    );
   };
 
   return (
@@ -103,18 +120,33 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="px-3 pb-3">
         <Button
           onClick={handleAdd}
+          disabled={outOfStock}
           className={cn(
             "w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
-            added
-              ? "bg-[#4A7C59] text-white scale-95"
-              : "text-white hover:scale-[1.02] active:scale-95",
+            outOfStock
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : atMax
+                ? "text-white"
+                : inCart
+                  ? "text-white"
+                  : "text-white hover:scale-[1.02] active:scale-95",
           )}
-          style={!added ? { backgroundColor: "#4A7C59" } : {}}
+          style={
+            outOfStock
+              ? {}
+              : atMax
+                ? { backgroundColor: "#7A5C3E" }
+                : inCart
+                  ? { backgroundColor: "#4A7C59" }
+                  : { backgroundColor: "#4A7C59" }
+          }
         >
-          {added ? (
+          {atMax ? (
+            "Max in cart"
+          ) : inCart ? (
             <>
               <HugeiconsIcon icon={Check} className="w-4 h-4" />
-              Added!
+              In Cart ({cartQty})
             </>
           ) : (
             <>
