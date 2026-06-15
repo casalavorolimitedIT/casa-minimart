@@ -43,6 +43,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       : (cfg.label as (n: number) => string)(product.stock);
 
   const outOfStock = level === "out";
+  const noPrice = product.price === null;
   const cartItem = cartItems.find((i) => i.id === product.id);
   const cartQty = cartItem?.qty ?? 0;
   const atMax = cartQty >= product.stock;
@@ -120,10 +121,10 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="px-3 pb-3">
         <Button
           onClick={handleAdd}
-          disabled={outOfStock || atMax}
+          disabled={outOfStock || atMax || noPrice}
           className={cn(
             "w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
-            outOfStock
+            outOfStock || noPrice
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : atMax
                 ? "text-white"
@@ -132,7 +133,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                   : "text-white hover:scale-[1.02] active:scale-95",
           )}
           style={
-            outOfStock
+            outOfStock || noPrice
               ? {}
               : atMax
                 ? { backgroundColor: "#7A5C3E" }
@@ -143,6 +144,8 @@ export default function ProductCard({ product }: ProductCardProps) {
         >
           {outOfStock ? (
             "Out of stock"
+          ) : noPrice ? (
+            "Price on request"
           ) : atMax ? (
             "Max in cart"
           ) : inCart ? (

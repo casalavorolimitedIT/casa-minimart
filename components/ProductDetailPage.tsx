@@ -597,22 +597,26 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={product.stock === 0 || atCartMax}
+                disabled={product.stock === 0 || atCartMax || product.price === null}
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:scale-[0.98]"
                 style={{
                   backgroundColor: atCartMax
                     ? "#7A5C3E"
-                    : product.stock === 0
+                    : product.stock === 0 || product.price === null
                       ? "#A89070"
                       : "#C8720A",
                   cursor:
-                    product.stock === 0 || atCartMax ? "not-allowed" : "pointer",
+                    product.stock === 0 || atCartMax || product.price === null
+                      ? "not-allowed"
+                      : "pointer",
                 }}
               >
                 {atCartMax ? (
                   "Max in Cart"
                 ) : product.stock === 0 ? (
                   "Out of Stock"
+                ) : product.price === null ? (
+                  "Price on Request"
                 ) : (
                   <>
                     <HugeiconsIcon icon={ShoppingCart} className="w-4 h-4" />
