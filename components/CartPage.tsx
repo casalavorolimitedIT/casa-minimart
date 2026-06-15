@@ -364,7 +364,7 @@ export default function CartPage() {
   const cartIds = items.map((i) => i.id);
 
   const { data: serverItems } = useQuery({
-    queryKey: ["cart-sync", cartIds.join(",")],
+    queryKey: ["cart-sync-initial"],
     queryFn: () =>
       fetchInventoryItems({
         queryParams: {
@@ -373,7 +373,7 @@ export default function CartPage() {
         },
       }),
     enabled: cartIds.length > 0,
-    staleTime: 0,
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
 
@@ -396,7 +396,7 @@ export default function CartPage() {
     if (anyChange) {
       toast("Some items were updated to match current availability");
     }
-  }, [serverItems]);
+  }, [serverItems, items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCheckout = () => {
     // Checkout flow to be wired up with payment integration
