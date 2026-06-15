@@ -120,7 +120,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       <div className="px-3 pb-3">
         <Button
           onClick={handleAdd}
-          disabled={outOfStock}
+          disabled={outOfStock || atMax}
           className={cn(
             "w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-semibold transition-all duration-200",
             outOfStock
@@ -141,7 +141,9 @@ export default function ProductCard({ product }: ProductCardProps) {
                   : { backgroundColor: "#4A7C59" }
           }
         >
-          {atMax ? (
+          {outOfStock ? (
+            "Out of stock"
+          ) : atMax ? (
             "Max in cart"
           ) : inCart ? (
             <>
