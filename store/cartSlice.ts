@@ -21,6 +21,7 @@ const cartSlice = createSlice({
   name: "cart",
   initialState,
   reducers: {
+    /** Callers are responsible for checking stock before dispatching to prevent over-adding. */
     addItem(state, action: PayloadAction<CartItem>) {
       const existing = state.items.find((i) => i.id === action.payload.id);
       if (existing) {
@@ -43,6 +44,10 @@ const cartSlice = createSlice({
       const item = state.items.find((i) => i.id === action.payload.id);
       if (item) item.qty = action.payload.qty;
     },
+    /**
+     * Syncs cart against live server data. Caller MUST pass server records for ALL
+     * current cart item IDs — any item absent from the payload is treated as deleted.
+     */
     syncWithServer(state, action: PayloadAction<InventoryItem[]>) {
       const serverMap = new Map(action.payload.map((i) => [i.id, i]));
       state.items = state.items
@@ -61,15 +66,19 @@ const cartSlice = createSlice({
           };
         });
     },
+    clearCart(state) {
+      state.items = [];
+    },
   },
 });
 
-export const { addItem, removeItem, updateQty, syncWithServer } =
+export const { addItem, removeItem, updateQty, syncWithServer, clearCart } =
   cartSlice.actions;
 
 // Selectors use an inline state type to avoid circular imports with store/index.ts
 export const selectCartItems = (state: { cart: CartState }) =>
   state.cart.items;
+// Counts distinct product lines (not total units) — intentional for the navbar badge
 export const selectCartCount = (state: { cart: CartState }) =>
   state.cart.items.length;
 export const selectCartTotal = (state: { cart: CartState }) =>
