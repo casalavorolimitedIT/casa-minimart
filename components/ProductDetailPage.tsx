@@ -420,6 +420,7 @@ export default function ProductDetailPage() {
         qty: selectedQty,
       }),
     );
+    setSelectedQty(1);
   };
 
   /* ── Loading state ── */
@@ -584,7 +585,7 @@ export default function ProductDetailPage() {
               </div>
               {product.stock > 0 && (
                 <QuantitySelector
-                  max={product.stock}
+                  max={Math.max(1, product.stock - cartQty)}
                   qty={selectedQty}
                   onChange={setSelectedQty}
                 />
