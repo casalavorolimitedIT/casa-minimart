@@ -17,6 +17,8 @@ import {
   ChevronLeft,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { addItem, selectCartItems } from "@/store/cartSlice";
 import { formatPrice, type Product } from "@/lib/data";
 import Footer from "@/components/home/Footer";
 import SmartImage from "./custom/smart-images";
@@ -253,15 +255,22 @@ function ImageGallery({
 /* ─────────────────────────────────────────────
    QUANTITY SELECTOR
 ───────────────────────────────────────────── */
-function QuantitySelector({ max }: { max: number }) {
-  const [qty, setQty] = useState(1);
+function QuantitySelector({
+  max,
+  qty,
+  onChange,
+}: {
+  max: number;
+  qty: number;
+  onChange: (qty: number) => void;
+}) {
   const atMax = qty >= max;
   return (
     <div className="flex items-center gap-3">
       <div className="flex items-center rounded-xl border border-[#DDD0B3] overflow-hidden bg-white">
         <button
           type="button"
-          onClick={() => setQty((q) => Math.max(1, q - 1))}
+          onClick={() => onChange(Math.max(1, qty - 1))}
           className="w-9 h-9 flex items-center justify-center text-[#7A5C3E] hover:bg-[#F5EDD6] transition-colors"
         >
           <HugeiconsIcon icon={Minus} className="w-3.5 h-3.5" />
@@ -271,7 +280,7 @@ function QuantitySelector({ max }: { max: number }) {
         </span>
         <button
           type="button"
-          onClick={() => setQty((q) => Math.min(max, q + 1))}
+          onClick={() => onChange(Math.min(max, qty + 1))}
           disabled={atMax}
           className={`w-9 h-9 flex items-center justify-center text-[#7A5C3E] transition-colors ${
             atMax ? "opacity-30 cursor-not-allowed" : "hover:bg-[#F5EDD6]"
@@ -354,7 +363,9 @@ function RelatedCard({ product }: { product: Product }) {
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.slug as string;
-  const [addedToCart, setAddedToCart] = useState(false);
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(selectCartItems);
+  const [selectedQty, setSelectedQty] = useState(1);
 
   const { data: categoriesData } = useSiteCategories({ p_site_id: SITE_ID });
   const categories = categoriesData ?? [];
@@ -393,9 +404,22 @@ export default function ProductDetailPage() {
     .slice(0, 4)
     .map(adaptInventoryItem);
 
+  const cartItem = product ? cartItems.find((i) => i.id === product.id) : undefined;
+  const cartQty = cartItem?.qty ?? 0;
+  const atCartMax = product ? cartQty >= product.stock : false;
+
   const handleAddToCart = () => {
-    setAddedToCart(true);
-    setTimeout(() => setAddedToCart(false), 2000);
+    if (!product || product.stock === 0 || atCartMax || product.price === null) return;
+    dispatch(
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.images[0] ?? "",
+        category: product.category,
+        qty: selectedQty,
+      }),
+    );
   };
 
   /* ── Loading state ── */
@@ -558,7 +582,13 @@ export default function ProductDetailPage() {
                   </p>
                 )}
               </div>
-              {product.stock > 0 && <QuantitySelector max={product.stock} />}
+              {product.stock > 0 && (
+                <QuantitySelector
+                  max={product.stock}
+                  qty={selectedQty}
+                  onChange={setSelectedQty}
+                />
+              )}
             </div>
 
             {/* CTAs */}
@@ -566,27 +596,25 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={product.stock === 0 || atCartMax}
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:scale-[0.98]"
                 style={{
-                  backgroundColor: addedToCart
-                    ? "#4A7C59"
+                  backgroundColor: atCartMax
+                    ? "#7A5C3E"
                     : product.stock === 0
                       ? "#A89070"
                       : "#C8720A",
-                  cursor: product.stock === 0 ? "not-allowed" : "pointer",
+                  cursor:
+                    product.stock === 0 || atCartMax ? "not-allowed" : "pointer",
                 }}
               >
-                {addedToCart ? (
-                  <>
-                    <HugeiconsIcon icon={Check} className="w-4 h-4" /> Added to
-                    Cart!
-                  </>
+                {atCartMax ? (
+                  "Max in Cart"
                 ) : product.stock === 0 ? (
                   "Out of Stock"
                 ) : (
                   <>
-                    <HugeiconsIcon icon={ShoppingCart} className="w-4 h-4" />{" "}
+                    <HugeiconsIcon icon={ShoppingCart} className="w-4 h-4" />
                     Add to Cart
                   </>
                 )}
