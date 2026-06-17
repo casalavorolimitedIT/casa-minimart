@@ -122,7 +122,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           className={`absolute top-2 left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow transition-all duration-200 ${
             inWishlist
               ? "bg-rose-500 text-white scale-100"
-              : "bg-white/80 text-[#A89070] opacity-0 group-hover:opacity-100 hover:text-rose-500"
+              : "bg-white/80 text-[#A89070] lg:opacity-0 lg:group-hover:opacity-100 hover:text-rose-500"
           }`}
         >
           <HugeiconsIcon icon={Heart} className="w-3.5 h-3.5" />
