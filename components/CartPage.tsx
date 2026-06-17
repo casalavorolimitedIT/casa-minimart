@@ -38,13 +38,17 @@ import {
 
 function CartItemCard({
   item,
+  maxStock,
   onUpdateQty,
   onRemove,
 }: {
   item: CartItem;
+  maxStock: number;
   onUpdateQty: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
 }) {
+  const atMax = item.qty >= maxStock;
+
   return (
     <div
       className="group flex gap-4 rounded-2xl bg-white border p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
@@ -92,8 +96,13 @@ function CartItemCard({
             </span>
             <button
               onClick={() => onUpdateQty(item.id, 1)}
+              disabled={atMax}
               aria-label={`Increase quantity of ${item.name}`}
-              className="w-8 h-8 flex items-center justify-center text-[#7A5C3E] hover:bg-[#F5EDD6] transition-colors"
+              className={`w-8 h-8 flex items-center justify-center transition-colors ${
+                atMax
+                  ? "text-[#DDD0B3] cursor-not-allowed"
+                  : "text-[#7A5C3E] hover:bg-[#F5EDD6]"
+              }`}
             >
               <HugeiconsIcon icon={Plus} className="w-3 h-3" />
             </button>
@@ -117,23 +126,39 @@ function CartItemCard({
   );
 }
 
+const VAT_RATE = 0.075;
+const BANK_NAME = "Taj Bank";
+const ACCOUNT_NAME = "Casalavoro Ltd";
+const ACCOUNT_NUMBER = "0008261185";
+
 function OrderSummary({
   subtotal,
-  promoCode,
-  setPromoCode,
-  promoApplied,
-  onApplyPromo,
-  onRemovePromo,
-  onCheckout,
+  items,
 }: {
   subtotal: number;
-  promoCode: string;
-  setPromoCode: (v: string) => void;
-  promoApplied: boolean;
-  onApplyPromo: () => void;
-  onRemovePromo: () => void;
-  onCheckout: () => void;
+  items: CartItem[];
 }) {
+  const [copied, setCopied] = React.useState(false);
+
+  const vat = Math.round(subtotal * VAT_RATE);
+  const total = subtotal + vat;
+
+  const orderSummaryText = items
+    .map((i) => `${i.name} x${i.qty} — ${formatPrice(i.price * i.qty)}`)
+    .join("\n");
+
+  const whatsappMessage = encodeURIComponent(
+    `Hi, I've made a bank transfer for my Casalavoro order.\n\n${orderSummaryText}\n\nSubtotal: ${formatPrice(subtotal)}\nVAT (7.5%): ${formatPrice(vat)}\nTotal paid: ${formatPrice(total)}\n\nPlease confirm and process my order.`,
+  );
+  const whatsappLink = `https://wa.me/?text=${whatsappMessage}`;
+
+  const copyAccountNumber = () => {
+    navigator.clipboard.writeText(ACCOUNT_NUMBER).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <div
       className="rounded-2xl border p-6 space-y-5"
@@ -153,20 +178,10 @@ function OrderSummary({
             {formatPrice(subtotal)}
           </span>
         </div>
-
-        {/* Delivery fee — hidden until wired up */}
-        <div className="hidden items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[#7A5C3E]">Delivery Fee</span>
-            <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-              style={{ backgroundColor: "#EAF2EC", color: "#4A7C59" }}
-            >
-              Abuja Express
-            </span>
-          </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[#7A5C3E]">VAT (7.5%)</span>
           <span className="font-semibold text-[#2C1A0E]">
-            {formatPrice(1500)}
+            {formatPrice(vat)}
           </span>
         </div>
       </div>
@@ -179,73 +194,77 @@ function OrderSummary({
           className="text-2xl font-bold text-[#2C1A0E]"
           style={{ fontFamily: "Georgia, serif" }}
         >
-          {formatPrice(subtotal)}
+          {formatPrice(total)}
         </span>
       </div>
 
-      {/* <div className="space-y-2">
-        <p className="text-xs font-semibold text-[#A89070] uppercase tracking-wider flex items-center gap-1.5">
-          <HugeiconsIcon icon={CouponPercent} className="w-3.5 h-3.5" />
-          Promo Code
-        </p>
-        {promoApplied ? (
-          <div className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm" style={{ backgroundColor: "#EAF2EC", color: "#4A7C59" }}>
-            <div className="flex items-center gap-2">
-              <HugeiconsIcon icon={Check} className="w-4 h-4" />
-              Promo code applied!
-            </div>
-            <button onClick={onRemovePromo} className="text-xs underline text-[#4A7C59] hover:text-[#2C1A0E] transition-colors">
-              Remove
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <input
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value)}
-              placeholder="Enter code"
-              className="flex-1 h-9 px-3 rounded-xl border text-sm bg-[#FAF4E8] text-[#2C1A0E] placeholder:text-[#A89070] focus:outline-none focus:border-[#C8720A] transition-colors"
-              style={{ borderColor: "#DDD0B3" }}
-            />
-            <button
-              onClick={onApplyPromo}
-              className="px-4 h-9 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98]"
-              style={{ backgroundColor: "#C8720A" }}
-            >
-              Apply
-            </button>
-          </div>
-        )}
-      </div> */}
-
-      <button
-        onClick={onCheckout}
-        className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:opacity-90"
-        style={{ backgroundColor: "#C8720A" }}
+      {/* Bank transfer instructions */}
+      <div
+        className="rounded-xl p-4 space-y-3"
+        style={{ backgroundColor: "#FAF4E8", border: "1px solid #E5D9C0" }}
       >
-        Proceed to Checkout
-        <HugeiconsIcon icon={ChevronRight} className="w-4 h-4" />
-      </button>
+        <p
+          className="text-xs font-bold uppercase tracking-wider"
+          style={{ color: "#7A5C3E" }}
+        >
+          Payment via Bank Transfer
+        </p>
+        <div className="space-y-1.5 text-sm">
+          <div className="flex justify-between">
+            <span className="text-[#A89070]">Bank</span>
+            <span className="font-semibold text-[#2C1A0E]">{BANK_NAME}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-[#A89070]">Account name</span>
+            <span className="font-semibold text-[#2C1A0E]">{ACCOUNT_NAME}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-[#A89070]">Account number</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-[#2C1A0E] tracking-widest">
+                {ACCOUNT_NUMBER}
+              </span>
+              <button
+                type="button"
+                onClick={copyAccountNumber}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all"
+                style={{
+                  backgroundColor: copied ? "#EAF2EC" : "#F5EDD6",
+                  color: copied ? "#4A7C59" : "#C8720A",
+                }}
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-between pt-1 border-t" style={{ borderColor: "#E5D9C0" }}>
+            <span className="text-[#A89070]">Amount to transfer</span>
+            <span className="font-bold" style={{ color: "#C8720A" }}>
+              {formatPrice(total)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <a
+        href={whatsappLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:opacity-90"
+        style={{ backgroundColor: "#25D366" }}
+      >
+        <HugeiconsIcon icon={MessageCircle} className="w-4 h-4" />
+        Send Receipt on WhatsApp
+      </a>
+
+      <p className="text-xs text-center text-[#A89070] leading-relaxed">
+        Transfer the exact amount, then send your receipt via WhatsApp. Your
+        order will be processed once payment is confirmed.
+      </p>
 
       <div className="flex items-center justify-center gap-1.5 text-xs text-[#A89070]">
         <HugeiconsIcon icon={Lock} className="w-3.5 h-3.5" />
         Secure Transaction
-      </div>
-
-      <div
-        className="flex items-center justify-center gap-1.5 text-xs border-t pt-4"
-        style={{ borderColor: "#E5D9C0" }}
-      >
-        <HugeiconsIcon
-          icon={MessageCircle}
-          className="w-3.5 h-3.5 text-[#25D366]"
-        />
-        <a
-          href="#"
-          className="text-[#A89070] hover:text-[#2C1A0E] transition-colors"
-        >
-          Need help? Chat on WhatsApp
-        </a>
       </div>
     </div>
   );
@@ -268,8 +287,8 @@ function EmptyCart() {
           Your cart is empty
         </h2>
         <p className="text-sm text-[#A89070] max-w-xs">
-          Looks like you haven't added anything yet. Browse our store and
-          discover something you'll love.
+          Looks like you haven&apos;t added anything yet. Browse our store and
+          discover something you&apos;ll love.
         </p>
       </div>
       <Link
@@ -354,8 +373,6 @@ export default function CartPage() {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectCartItems);
   const subtotal = useAppSelector(selectCartTotal);
-  const [promoCode, setPromoCode] = React.useState("");
-  const [promoApplied, setPromoApplied] = React.useState(false);
   const hasSynced = useRef(false);
 
   const { data: categoriesData } = useSiteCategories({ p_site_id: SITE_ID });
@@ -398,14 +415,20 @@ export default function CartPage() {
     }
   }, [serverItems, items]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCheckout = () => {
-    // Checkout flow to be wired up with payment integration
-  };
+  const stockMap = new Map(
+    (serverItems ?? []).map((s) => [s.id, s.quantity]),
+  );
+
+  const vat = Math.round(subtotal * VAT_RATE);
+  const total = subtotal + vat;
 
   const handleUpdateQty = (id: string, delta: number) => {
     const item = items.find((i) => i.id === id);
     if (!item) return;
-    dispatch(updateQty({ id, qty: item.qty + delta }));
+    const newQty = item.qty + delta;
+    const maxStock = stockMap.get(id) ?? Infinity;
+    if (newQty > maxStock) return;
+    dispatch(updateQty({ id, qty: newQty }));
   };
 
   const handleRemoveItem = (id: string) => {
@@ -451,6 +474,7 @@ export default function CartPage() {
                     <CartItemCard
                       key={item.id}
                       item={item}
+                      maxStock={stockMap.get(item.id) ?? Infinity}
                       onUpdateQty={handleUpdateQty}
                       onRemove={handleRemoveItem}
                     />
@@ -459,20 +483,7 @@ export default function CartPage() {
               </section>
 
               <aside className="sticky top-20">
-                <OrderSummary
-                  subtotal={subtotal}
-                  promoCode={promoCode}
-                  setPromoCode={setPromoCode}
-                  promoApplied={promoApplied}
-                  onApplyPromo={() => {
-                    if (promoCode) {
-                      setPromoApplied(true);
-                      setPromoCode("");
-                    }
-                  }}
-                  onRemovePromo={() => setPromoApplied(false)}
-                  onCheckout={handleCheckout}
-                />
+                <OrderSummary subtotal={subtotal} items={items} />
               </aside>
             </div>
 
@@ -505,22 +516,26 @@ export default function CartPage() {
           style={{ backgroundColor: "#FEFCF7", borderColor: "#E5D9C0" }}
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-[#A89070]">Total</span>
+            <span className="text-sm text-[#A89070]">
+              Total <span className="text-[10px]">(incl. 7.5% VAT)</span>
+            </span>
             <span
               className="font-bold text-[#2C1A0E]"
               style={{ fontFamily: "Georgia, serif" }}
             >
-              {formatPrice(subtotal)}
+              {formatPrice(total)}
             </span>
           </div>
-          <button
-            onClick={handleCheckout}
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(`Hi, I've made a transfer of ${formatPrice(total)} for my Casalavoro order. Please confirm.`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
             className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-            style={{ backgroundColor: "#C8720A" }}
+            style={{ backgroundColor: "#25D366" }}
           >
-            Proceed to Checkout
-            <HugeiconsIcon icon={ChevronRight} className="w-4 h-4" />
-          </button>
+            <HugeiconsIcon icon={MessageCircle} className="w-4 h-4" />
+            Send Receipt on WhatsApp
+          </a>
         </div>
       )}
 
