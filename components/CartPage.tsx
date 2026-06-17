@@ -34,6 +34,7 @@ import {
   addItem,
   type CartItem,
 } from "@/store/cartSlice";
+import CheckoutModal from "@/components/CheckoutModal";
 
 
 function CartItemCard({
@@ -127,38 +128,16 @@ function CartItemCard({
 }
 
 const VAT_RATE = parseFloat(process.env.NEXT_PUBLIC_VAT_RATE ?? "0.075");
-const BANK_NAME = process.env.NEXT_PUBLIC_BANK_NAME ?? "Taj Bank";
-const ACCOUNT_NAME = process.env.NEXT_PUBLIC_ACCOUNT_NAME ?? "Casalavoro Ltd";
-const ACCOUNT_NUMBER = process.env.NEXT_PUBLIC_ACCOUNT_NUMBER ?? "0008261185";
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
 function OrderSummary({
   subtotal,
-  items,
+  onCheckout,
 }: {
   subtotal: number;
-  items: CartItem[];
+  onCheckout: () => void;
 }) {
-  const [copied, setCopied] = React.useState(false);
-
   const vat = Math.round(subtotal * VAT_RATE);
   const total = subtotal + vat;
-
-  const orderSummaryText = items
-    .map((i) => `${i.name} x${i.qty} — ${formatPrice(i.price * i.qty)}`)
-    .join("\n");
-
-  const whatsappMessage = encodeURIComponent(
-    `Hi, I've made a bank transfer for my Casalavoro order.\n\n${orderSummaryText}\n\nSubtotal: ${formatPrice(subtotal)}\nVAT (7.5%): ${formatPrice(vat)}\nTotal paid: ${formatPrice(total)}\n\nPlease confirm and process my order.`,
-  );
-  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
-
-  const copyAccountNumber = () => {
-    navigator.clipboard.writeText(ACCOUNT_NUMBER).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
 
   return (
     <div
@@ -199,73 +178,37 @@ function OrderSummary({
         </span>
       </div>
 
-      {/* Bank transfer instructions */}
-      <div
-        className="rounded-xl p-4 space-y-3"
-        style={{ backgroundColor: "#FAF4E8", border: "1px solid #E5D9C0" }}
-      >
-        <p
-          className="text-xs font-bold uppercase tracking-wider"
-          style={{ color: "#7A5C3E" }}
-        >
-          Payment via Bank Transfer
-        </p>
-        <div className="space-y-1.5 text-sm">
-          <div className="flex justify-between">
-            <span className="text-[#A89070]">Bank</span>
-            <span className="font-semibold text-[#2C1A0E]">{BANK_NAME}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-[#A89070]">Account name</span>
-            <span className="font-semibold text-[#2C1A0E]">{ACCOUNT_NAME}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[#A89070]">Account number</span>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-[#2C1A0E] tracking-widest">
-                {ACCOUNT_NUMBER}
-              </span>
-              <button
-                type="button"
-                onClick={copyAccountNumber}
-                className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all"
-                style={{
-                  backgroundColor: copied ? "#EAF2EC" : "#F5EDD6",
-                  color: copied ? "#4A7C59" : "#C8720A",
-                }}
-              >
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-          </div>
-          <div className="flex justify-between pt-1 border-t" style={{ borderColor: "#E5D9C0" }}>
-            <span className="text-[#A89070]">Amount to transfer</span>
-            <span className="font-bold" style={{ color: "#C8720A" }}>
-              {formatPrice(total)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <a
-        href={whatsappLink}
-        target="_blank"
-        rel="noopener noreferrer"
+      <button
+        type="button"
+        onClick={onCheckout}
         className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] hover:opacity-90"
-        style={{ backgroundColor: "#25D366" }}
+        style={{ backgroundColor: "#C8720A" }}
       >
-        <HugeiconsIcon icon={MessageCircle} className="w-4 h-4" />
-        Send Receipt on WhatsApp
-      </a>
-
-      <p className="text-xs text-center text-[#A89070] leading-relaxed">
-        Transfer the exact amount, then send your receipt via WhatsApp. Your
-        order will be processed once payment is confirmed.
-      </p>
+        Proceed to Checkout
+        <HugeiconsIcon icon={ChevronRight} className="w-4 h-4" />
+      </button>
 
       <div className="flex items-center justify-center gap-1.5 text-xs text-[#A89070]">
         <HugeiconsIcon icon={Lock} className="w-3.5 h-3.5" />
         Secure Transaction
+      </div>
+
+      <div
+        className="flex items-center justify-center gap-1.5 text-xs border-t pt-4"
+        style={{ borderColor: "#E5D9C0" }}
+      >
+        <HugeiconsIcon
+          icon={MessageCircle}
+          className="w-3.5 h-3.5 text-[#25D366]"
+        />
+        <a
+          href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? ""}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#A89070] hover:text-[#2C1A0E] transition-colors"
+        >
+          Need help? Chat on WhatsApp
+        </a>
       </div>
     </div>
   );
@@ -374,6 +317,7 @@ export default function CartPage() {
   const dispatch = useAppDispatch();
   const items = useAppSelector(selectCartItems);
   const subtotal = useAppSelector(selectCartTotal);
+  const [checkoutOpen, setCheckoutOpen] = React.useState(false);
   const hasSynced = useRef(false);
 
   const { data: categoriesData } = useSiteCategories({ p_site_id: SITE_ID });
@@ -484,7 +428,10 @@ export default function CartPage() {
               </section>
 
               <aside className="sticky top-20">
-                <OrderSummary subtotal={subtotal} items={items} />
+                <OrderSummary
+                  subtotal={subtotal}
+                  onCheckout={() => setCheckoutOpen(true)}
+                />
               </aside>
             </div>
 
@@ -527,18 +474,24 @@ export default function CartPage() {
               {formatPrice(total)}
             </span>
           </div>
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I've made a transfer of ${formatPrice(total)} for my Casalavoro order. Please confirm.`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setCheckoutOpen(true)}
             className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
-            style={{ backgroundColor: "#25D366" }}
+            style={{ backgroundColor: "#C8720A" }}
           >
-            <HugeiconsIcon icon={MessageCircle} className="w-4 h-4" />
-            Send Receipt on WhatsApp
-          </a>
+            Proceed to Checkout
+            <HugeiconsIcon icon={ChevronRight} className="w-4 h-4" />
+          </button>
         </div>
       )}
+
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        items={items}
+        subtotal={subtotal}
+      />
 
       <Footer />
     </div>
