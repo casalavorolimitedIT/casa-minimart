@@ -258,7 +258,7 @@ export default function NavbarComponents({
           </button>
 
           {/* Logo */}
-          <a href="/home" className="flex items-center gap-2 shrink-0">
+          <Link href="/home" className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 hidden rounded-lg md:flex items-center justify-center bg-amber-700">
               <span className="text-white text-xs font-bold font-display">C</span>
             </div>
@@ -274,7 +274,7 @@ export default function NavbarComponents({
                 Minimart
               </span>
             </span>
-          </a>
+          </Link>
 
           {/* Desktop category nav */}
           <NavigationMenu className="hidden lg:flex">
