@@ -126,10 +126,11 @@ function CartItemCard({
   );
 }
 
-const VAT_RATE = 0.075;
-const BANK_NAME = "Taj Bank";
-const ACCOUNT_NAME = "Casalavoro Ltd";
-const ACCOUNT_NUMBER = "0008261185";
+const VAT_RATE = parseFloat(process.env.NEXT_PUBLIC_VAT_RATE ?? "0.075");
+const BANK_NAME = process.env.NEXT_PUBLIC_BANK_NAME ?? "Taj Bank";
+const ACCOUNT_NAME = process.env.NEXT_PUBLIC_ACCOUNT_NAME ?? "Casalavoro Ltd";
+const ACCOUNT_NUMBER = process.env.NEXT_PUBLIC_ACCOUNT_NUMBER ?? "0008261185";
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 
 function OrderSummary({
   subtotal,
@@ -150,7 +151,7 @@ function OrderSummary({
   const whatsappMessage = encodeURIComponent(
     `Hi, I've made a bank transfer for my Casalavoro order.\n\n${orderSummaryText}\n\nSubtotal: ${formatPrice(subtotal)}\nVAT (7.5%): ${formatPrice(vat)}\nTotal paid: ${formatPrice(total)}\n\nPlease confirm and process my order.`,
   );
-  const whatsappLink = `https://wa.me/?text=${whatsappMessage}`;
+  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
 
   const copyAccountNumber = () => {
     navigator.clipboard.writeText(ACCOUNT_NUMBER).then(() => {
@@ -527,7 +528,7 @@ export default function CartPage() {
             </span>
           </div>
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(`Hi, I've made a transfer of ${formatPrice(total)} for my Casalavoro order. Please confirm.`)}`}
+            href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi, I've made a transfer of ${formatPrice(total)} for my Casalavoro order. Please confirm.`)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
