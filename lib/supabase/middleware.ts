@@ -32,7 +32,26 @@ export async function updateSession(request: NextRequest) {
       },
     },
   );
-  // This will update the session in the cookie if it has changed
   await supabase.auth.getSession();
+
+  // Also refresh PMS session for dashboard auth
+  const pmsClient = createServerClient(
+    process.env.NEXT_PUBLIC_PMS_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_PMS_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options),
+          );
+        },
+      },
+    },
+  );
+  await pmsClient.auth.getSession();
+
   return response;
 }

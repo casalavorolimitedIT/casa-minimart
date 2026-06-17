@@ -42,7 +42,7 @@ export interface InventoryItem {
   created_at: string;
   unit_value: unknown;
   reorder_level: unknown;
-  description?: string;
+  note?: string;
 }
 
 export interface GetSiteCategoriesPayload {

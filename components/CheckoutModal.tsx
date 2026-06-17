@@ -10,6 +10,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { formatPrice } from "@/lib/data";
 import type { CartItem } from "@/store/cartSlice";
+import { createOrder } from "@/app/actions/create-order";
 
 const BANK_NAME = process.env.NEXT_PUBLIC_BANK_NAME ?? "Taj Bank";
 const ACCOUNT_NAME = process.env.NEXT_PUBLIC_ACCOUNT_NAME ?? "Casalavoro Ltd";
@@ -74,8 +75,18 @@ export default function CheckoutModal({
     });
   };
 
+  const saveOrder = () => {
+    createOrder(
+      orderRef,
+      items.map((i) => ({ id: i.id, qty: i.qty })),
+    ).then(({ error }) => {
+      if (error) console.error("[orders] save failed:", error);
+    });
+  };
+
+  const orderUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? (typeof window !== "undefined" ? window.location.origin : "")}/order/${orderRef}`;
   const whatsappText = encodeURIComponent(
-    `Hi! I've made a bank transfer for my Casalavoro Minimart order.\n\nOrder Reference: ${orderRef}\n\nItems:\n${items.map((i) => `- ${i.name} x${i.qty} — ${formatPrice(i.price * i.qty)}`).join("\n")}\n\nSubtotal: ${formatPrice(subtotal)}\nVAT (7.5%): ${formatPrice(vat)}\nTotal Paid: ${formatPrice(total)}\n\nPlease confirm and process my order. Thank you!`,
+    `Hi! I've made a bank transfer for my Casalavoro Minimart order.\n\nOrder Reference: ${orderRef}\nTrack order: ${orderUrl}\n\nItems:\n${items.map((i) => `- ${i.name} x${i.qty} — ${formatPrice(i.price * i.qty)}`).join("\n")}\n\nSubtotal: ${formatPrice(subtotal)}\nVAT (7.5%): ${formatPrice(vat)}\nTotal Paid: ${formatPrice(total)}\n\nPlease confirm and process my order. Thank you!`,
   );
   const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappText}`;
 
@@ -392,7 +403,10 @@ export default function CheckoutModal({
                   href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => setTimeout(() => setReceiptSent(true), 600)}
+                  onClick={() => {
+                    saveOrder();
+                    setTimeout(() => setReceiptSent(true), 600);
+                  }}
                   className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] hover:opacity-90"
                   style={{ backgroundColor: "#25D366" }}
                 >
@@ -434,6 +448,18 @@ export default function CheckoutModal({
                     {orderRef}
                   </span>
                 </div>
+
+                <a
+                  href={`/order/${orderRef}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-10 rounded-xl font-semibold text-sm flex items-center justify-center gap-1.5 border transition-all hover:bg-[#F5EDD6]"
+                  style={{ borderColor: "#DDD0B3", color: "#7A5C3E" }}
+                >
+                  Track your order
+                  <HugeiconsIcon icon={ChevronRight} className="w-3.5 h-3.5" />
+                </a>
+
                 <button
                   type="button"
                   onClick={onClose}

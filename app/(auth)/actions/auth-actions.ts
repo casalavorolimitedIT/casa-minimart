@@ -1,8 +1,30 @@
 "use server";
 
 import { createActionClient } from "@/lib/supabase/action";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+async function createPmsActionClient() {
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_PMS_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_PMS_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll().map(({ name, value }) => ({ name, value }));
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+          });
+        },
+      },
+    },
+  );
+}
 
 type CredentialsResult =
   | {
@@ -67,10 +89,25 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    // Try PMS auth as fallback (admin-only accounts live there)
+    const pms = await createPmsActionClient();
+    const { error: pmsError } = await pms.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+    if (pmsError) {
+      redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    }
   } else {
-    redirect("/dashboard");
+    // Also sign into PMS silently so dashboard session works
+    const pms = await createPmsActionClient();
+    await pms.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
   }
+
+  redirect("/dashboard/orders");
 }
 
 export async function register(formData: FormData) {

@@ -1,4 +1,4 @@
-export type StockLevel = "critical" | "low" | "medium" | "plenty";
+export type StockLevel = "out" | "critical" | "low" | "medium" | "plenty";
 
 export interface Product {
   id: string;
@@ -234,7 +234,8 @@ export const popularProducts: Product[] = [
 ];
 
 export function getStockLevel(stock: number): StockLevel {
-  if (stock <= 1) return "critical";
+  if (stock === 0) return "out";
+  if (stock === 1) return "critical";
   if (stock <= 4) return "low";
   if (stock <= 8) return "medium";
   return "plenty";
