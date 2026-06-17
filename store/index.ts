@@ -1,14 +1,23 @@
 // store/index.ts
 import { configureStore, type Middleware } from "@reduxjs/toolkit";
 import cartReducer, { type CartState } from "./cartSlice";
+import wishlistReducer, { type WishlistState } from "./wishlistSlice";
 
 const CART_KEY = "casa-cart";
+const WISHLIST_KEY = "casa-wishlist";
 
-function loadCartFromStorage(): { cart: CartState } | undefined {
+function loadFromStorage():
+  | { cart: CartState; wishlist: WishlistState }
+  | undefined {
   if (typeof window === "undefined") return undefined;
   try {
-    const raw = localStorage.getItem(CART_KEY);
-    return raw ? { cart: JSON.parse(raw) } : undefined;
+    const cart = localStorage.getItem(CART_KEY);
+    const wishlist = localStorage.getItem(WISHLIST_KEY);
+    if (!cart && !wishlist) return undefined;
+    return {
+      ...(cart ? { cart: JSON.parse(cart) } : {}),
+      ...(wishlist ? { wishlist: JSON.parse(wishlist) } : {}),
+    } as { cart: CartState; wishlist: WishlistState };
   } catch {
     return undefined;
   }
@@ -21,6 +30,7 @@ const localStorageMiddleware: Middleware =
       if (typeof window !== "undefined") {
         const state = storeApi.getState() as RootState;
         localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
+        localStorage.setItem(WISHLIST_KEY, JSON.stringify(state.wishlist));
       }
     } catch {
       // QuotaExceededError or other storage errors
@@ -29,8 +39,8 @@ const localStorageMiddleware: Middleware =
   };
 
 export const store = configureStore({
-  reducer: { cart: cartReducer },
-  preloadedState: loadCartFromStorage(),
+  reducer: { cart: cartReducer, wishlist: wishlistReducer },
+  preloadedState: loadFromStorage(),
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(localStorageMiddleware),
 });

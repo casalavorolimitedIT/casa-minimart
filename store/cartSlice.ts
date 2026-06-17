@@ -78,9 +78,8 @@ export const { addItem, removeItem, updateQty, syncWithServer, clearCart } =
 // Selectors use an inline state type to avoid circular imports with store/index.ts
 export const selectCartItems = (state: { cart: CartState }) =>
   state.cart.items;
-// Counts distinct product lines (not total units) — intentional for the navbar badge
 export const selectCartCount = (state: { cart: CartState }) =>
-  state.cart.items.length;
+  state.cart.items.reduce((sum, i) => sum + i.qty, 0);
 export const selectCartTotal = (state: { cart: CartState }) =>
   state.cart.items.reduce((sum, i) => sum + i.price * i.qty, 0);
 

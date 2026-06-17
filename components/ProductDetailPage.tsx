@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   Star,
   ShoppingCart,
@@ -15,10 +15,15 @@ import {
   Droplets,
   Flask,
   ChevronLeft,
+  HeartCheckIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addItem, selectCartItems } from "@/store/cartSlice";
+import {
+  toggleWishlistItem,
+  selectIsInWishlist,
+} from "@/store/wishlistSlice";
 import { formatPrice, type Product } from "@/lib/data";
 import Footer from "@/components/home/Footer";
 import SmartImage from "./custom/smart-images";
@@ -211,6 +216,7 @@ function ImageGallery({
               type="button"
               key={i}
               onClick={() => setActive(i)}
+              aria-label={`View image ${i + 1}`}
               className={`rounded-full transition-all duration-200 ${
                 i === active
                   ? "w-5 h-1.5 bg-[#C8720A]"
@@ -229,6 +235,7 @@ function ImageGallery({
               type="button"
               key={i}
               onClick={() => setActive(i)}
+              aria-label={`Select image ${i + 1}`}
               className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all duration-150 ${
                 i === active
                   ? "border-[#C8720A] shadow-sm"
@@ -259,10 +266,14 @@ function QuantitySelector({
   max,
   qty,
   onChange,
+  inWishlist,
+  onToggleWishlist,
 }: {
   max: number;
   qty: number;
   onChange: (qty: number) => void;
+  inWishlist: boolean;
+  onToggleWishlist: () => void;
 }) {
   const atMax = qty >= max;
   return (
@@ -270,6 +281,7 @@ function QuantitySelector({
       <div className="flex items-center rounded-xl border border-[#DDD0B3] overflow-hidden bg-white">
         <button
           type="button"
+          aria-label="Decrease quantity"
           onClick={() => onChange(Math.max(1, qty - 1))}
           className="w-9 h-9 flex items-center justify-center text-[#7A5C3E] hover:bg-[#F5EDD6] transition-colors"
         >
@@ -280,6 +292,7 @@ function QuantitySelector({
         </span>
         <button
           type="button"
+          aria-label="Increase quantity"
           onClick={() => onChange(Math.min(max, qty + 1))}
           disabled={atMax}
           className={`w-9 h-9 flex items-center justify-center text-[#7A5C3E] transition-colors ${
@@ -291,9 +304,15 @@ function QuantitySelector({
       </div>
       <button
         type="button"
-        className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#DDD0B3] text-[#A89070] hover:text-red-400 hover:border-red-200 transition-colors bg-white"
+        onClick={onToggleWishlist}
+        aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+        className={`w-9 h-9 flex items-center justify-center rounded-xl border transition-colors  ${
+          inWishlist
+            ? "border-rose-300 text-white bg-rose-500 hover:bg-rose-600"
+            : "border-[#DDD0B3] text-[#A89070] hover:text-rose-400 bg-white hover:border-rose-200"
+        }`}
       >
-        <HugeiconsIcon icon={Heart} className="w-4 h-4" />
+        <HugeiconsIcon icon={inWishlist? HeartCheckIcon: Heart} className="w-4 h-4" />
       </button>
     </div>
   );
@@ -302,6 +321,71 @@ function QuantitySelector({
 /* ─────────────────────────────────────────────
    RELATED PRODUCT CARD
 ───────────────────────────────────────────── */
+function RelatedRow({ products }: { products: Product[] }) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(products.length > 0);
+
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -300 : 300,
+      behavior: "smooth",
+    });
+  };
+
+  if (products.length === 0) return null;
+
+  return (
+    <div className="relative">
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => scroll("left")}
+          aria-label="Scroll left"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-9 h-9 rounded-full bg-white border border-[#E5D9C0] shadow-md flex items-center justify-center hover:bg-[#F5EDD6] transition-colors"
+        >
+          <HugeiconsIcon
+            icon={ChevronLeft}
+            className="w-4 h-4 text-[#7A5C3E]"
+          />
+        </button>
+      )}
+      <div
+        ref={scrollRef}
+        onScroll={updateArrows}
+        className="flex gap-4 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {products.map((p) => (
+          <div key={p.id} className="shrink-0 w-44 sm:w-60">
+            <RelatedCard product={p} />
+          </div>
+        ))}
+      </div>
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => scroll("right")}
+          aria-label="Scroll right"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 w-9 h-9 rounded-full bg-white border border-[#E5D9C0] shadow-md flex items-center justify-center hover:bg-[#F5EDD6] transition-colors"
+        >
+          <HugeiconsIcon
+            icon={ChevronRight}
+            className="w-4 h-4 text-[#7A5C3E]"
+          />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function RelatedCard({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
   return (
@@ -322,10 +406,12 @@ function RelatedCard({ product }: { product: Product }) {
       </div>
       <div className="p-3 flex flex-col gap-2 flex-1">
         <p
-          className="text-sm font-semibold text-[#2C1A0E] leading-snug line-clamp-2"
+          className="text-sm h-10 font-semibold text-[#2C1A0E] leading-snug line-clamp-2"
           style={{ fontFamily: "Georgia, serif" }}
         >
-          {product.name}
+          {product.name.length > 50
+            ? product.name.slice(0, 50) + "..."
+            : product.name}
         </p>
         <div className="flex items-center justify-between mt-auto">
           <span className="text-sm font-bold text-[#C8720A]">
@@ -338,11 +424,16 @@ function RelatedCard({ product }: { product: Product }) {
               setAdded(true);
               setTimeout(() => setAdded(false), 1800);
             }}
+            disabled={
+              product.stock === 0 ||
+              product.price === null ||
+              product.price === 0
+            }
             className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
             style={{
               backgroundColor: added ? "#4A7C59" : "#C8720A",
-              opacity: product.stock === 0 ? 0.6 : 1,
-              cursor: product.stock === 0 ? "not-allowed" : "pointer",
+              opacity: product.stock === 0 || product.price === null || product.price === 0 ? 0.6 : 1,
+              cursor: product.stock === 0 || product.price === null || product.price === 0 ? "not-allowed" : "pointer",
             }}
           >
             {added ? (
@@ -363,8 +454,10 @@ function RelatedCard({ product }: { product: Product }) {
 export default function ProductDetailPage() {
   const params = useParams();
   const productId = params.slug as string;
+  const router = useRouter();
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
+  const inWishlist = useAppSelector(selectIsInWishlist(productId));
   const [selectedQty, setSelectedQty] = useState(1);
 
   const { data: categoriesData } = useSiteCategories({ p_site_id: SITE_ID });
@@ -395,21 +488,37 @@ export default function ProductDetailPage() {
         category: rawProduct?.category,
         id: `neq.${productId}`,
       },
-      limit: 5,
+      limit: 30,
     },
     { enabled: !!rawProduct?.category },
   );
 
-  const relatedProducts: Product[] = (relatedData ?? [])
-    .slice(0, 4)
-    .map(adaptInventoryItem);
+  const relatedProducts: Product[] = (relatedData ?? []).map(
+    adaptInventoryItem,
+  );
 
-  const cartItem = product ? cartItems.find((i) => i.id === product.id) : undefined;
+  const cartItem = product
+    ? cartItems.find((i) => i.id === product.id)
+    : undefined;
   const cartQty = cartItem?.qty ?? 0;
   const atCartMax = product ? cartQty >= product.stock : false;
 
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    dispatch(
+      toggleWishlistItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.images[0] ?? "",
+        category: product.category,
+      }),
+    );
+  };
+
   const handleAddToCart = () => {
-    if (!product || product.stock === 0 || atCartMax || product.price === null) return;
+    if (!product || product.stock === 0 || atCartMax || product.price === null)
+      return;
     dispatch(
       addItem({
         id: product.id,
@@ -588,6 +697,8 @@ export default function ProductDetailPage() {
                   max={Math.max(1, product.stock - cartQty)}
                   qty={selectedQty}
                   onChange={setSelectedQty}
+                  inWishlist={inWishlist}
+                  onToggleWishlist={handleToggleWishlist}
                 />
               )}
             </div>
@@ -597,7 +708,9 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={product.stock === 0 || atCartMax || product.price === null}
+                disabled={
+                  product.stock === 0 || atCartMax || product.price === null
+                }
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm text-white transition-all duration-200 active:scale-[0.98]"
                 style={{
                   backgroundColor: atCartMax
@@ -626,12 +739,29 @@ export default function ProductDetailPage() {
               </button>
               <button
                 type="button"
+                disabled={product.stock === 0 || product.price === null}
+                onClick={() => {
+                  if (!product || product.stock === 0 || product.price === null) return;
+                  if (!atCartMax) {
+                    dispatch(
+                      addItem({
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        imageUrl: product.images[0] ?? "",
+                        category: product.category,
+                        qty: selectedQty,
+                      }),
+                    );
+                  }
+                  router.push("/home/cart");
+                }}
                 className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-sm border-2 transition-all duration-200 active:scale-[0.98] hover:bg-[#FBF5E6]"
                 style={{
                   borderColor: "#C8720A",
                   color: "#C8720A",
-                  opacity: product.stock === 0 ? 0.6 : 1,
-                  cursor: product.stock === 0 ? "not-allowed" : "pointer",
+                  opacity: product.stock === 0 || product.price === null ? 0.6 : 1,
+                  cursor: product.stock === 0 || product.price === null ? "not-allowed" : "pointer",
                 }}
               >
                 Buy Now
@@ -731,11 +861,7 @@ export default function ProductDetailPage() {
                 You may also like
               </h2>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {relatedProducts.map((p) => (
-                <RelatedCard key={p.id} product={p} />
-              ))}
-            </div>
+            <RelatedRow products={relatedProducts} />
           </section>
         )}
       </main>

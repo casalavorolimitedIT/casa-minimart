@@ -16,13 +16,15 @@ import {
   Check,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { formatPrice, relatedProducts } from "@/lib/data";
+import { formatPrice } from "@/lib/data";
+import { adaptInventoryItem } from "@/lib/adapters";
 import SmartImage from "@/components/custom/smart-images";
 import NavbarComponents from "@/components/ui/header";
 import Footer from "@/components/home/Footer";
 import {
   useSiteCategories,
   fetchInventoryItems,
+  useInventoryItems,
 } from "@/lib/queries/supabase-rest";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -35,7 +37,6 @@ import {
   type CartItem,
 } from "@/store/cartSlice";
 import CheckoutModal from "@/components/CheckoutModal";
-
 
 function CartItemCard({
   item,
@@ -52,7 +53,7 @@ function CartItemCard({
 
   return (
     <div
-      className="group flex gap-4 rounded-2xl bg-white border p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+      className="group flex gap-4 rounded-2xl bg-white border md:p-4 p-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
       style={{ borderColor: "#E5D9C0" }}
     >
       <div
@@ -75,15 +76,16 @@ function CartItemCard({
         >
           {item.category}
         </span>
-        <p
-          className="text-sm font-semibold text-[#2C1A0E] leading-snug line-clamp-2"
+        <Link
+          href={`/home/product/${item.id}`}
+          className="text-sm font-semibold text-[#2C1A0E] leading-snug line-clamp-2 hover:underline"
           style={{ fontFamily: "Georgia, serif" }}
         >
           {item.name}
-        </p>
+        </Link>
         <p className="text-xs text-[#A89070]">{formatPrice(item.price)} each</p>
 
-        <div className="flex items-center justify-between mt-auto pt-1">
+        <div className="flex items-center justify-between mt-auto pt-1 gap-2">
           <div className="flex items-center rounded-xl border border-[#DDD0B3] overflow-hidden bg-white">
             <button
               onClick={() => onUpdateQty(item.id, -1)}
@@ -92,7 +94,7 @@ function CartItemCard({
             >
               <HugeiconsIcon icon={Minus} className="w-3 h-3" />
             </button>
-            <span className="w-8 text-center text-sm font-bold text-[#2C1A0E]">
+            <span className="md:w-8 w-6 text-center text-sm font-bold text-[#2C1A0E]">
               {item.qty}
             </span>
             <button
@@ -247,7 +249,9 @@ function EmptyCart() {
   );
 }
 
-function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
+import type { Product } from "@/lib/data";
+
+function SuggestedCard({ product }: { product: Product }) {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -255,8 +259,10 @@ function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
 
   const cartItem = cartItems.find((i) => i.id === product.id);
   const inCart = (cartItem?.qty ?? 0) > 0;
+  const outOfStock = (product.stock ?? 0) === 0;
 
   const handleAdd = () => {
+    if (product.price === null || outOfStock) return;
     if (timerRef.current) clearTimeout(timerRef.current);
     dispatch(
       addItem({
@@ -264,7 +270,7 @@ function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
         name: product.name,
         price: product.price,
         imageUrl: product.imageUrl,
-        category: "General",
+        category: product.category,
         qty: 1,
       }),
     );
@@ -274,39 +280,133 @@ function SuggestedCard({ product }: { product: (typeof relatedProducts)[0] }) {
 
   return (
     <div className="group flex flex-col rounded-2xl border border-[#E5D9C0] bg-white overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-      <div className="relative overflow-hidden bg-[#F5EDD6] aspect-[4/3]">
+      <Link
+        href={`/home/product/${product.id}`}
+        className="relative overflow-hidden bg-[#F5EDD6] aspect-[4/3]"
+      >
         <SmartImage
           src={product.imageUrl}
           alt={product.name}
           width={300}
           height={225}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 aspect-[4/3] transition-transform duration-300"
         />
-      </div>
+      </Link>
       <div className="p-3 flex flex-col gap-2 flex-1">
         <p
-          className="text-sm font-semibold text-[#2C1A0E] leading-snug line-clamp-2"
+          className="text-sm h-10 font-semibold text-[#2C1A0E] leading-snug line-clamp-2"
           style={{ fontFamily: "Georgia, serif" }}
         >
-          {product.name}
+          {product.name.length > 50
+            ? product.name.slice(0, 50) + "..."
+            : product.name}
         </p>
         <div className="flex items-center justify-between mt-auto">
           <span className="text-sm font-bold text-[#C8720A]">
             {formatPrice(product.price)}
           </span>
-          <button
-            onClick={handleAdd}
-            aria-label={`Add ${product.name} to cart`}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
-            style={{ backgroundColor: added || inCart ? "#4A7C59" : "#C8720A" }}
-          >
-            <HugeiconsIcon
-              icon={added || inCart ? Check : Plus}
-              className="w-3.5 h-3.5 text-white"
-            />
-          </button>
+          {outOfStock ? (
+            <span className="text-[10px] font-semibold text-[#A89070]">
+              Out of stock
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={
+                product.price === null || outOfStock || product.price === 0
+              }
+              aria-label={`Add ${product.name} to cart`}
+              className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
+              style={{
+                backgroundColor: added || inCart ? "#4A7C59" : "#C8720A",
+                opacity:
+                  product.price === null || outOfStock || product.price === 0
+                    ? 0.6
+                    : 1,
+                cursor:
+                  product.price === null || outOfStock || product.price === 0
+                    ? "not-allowed"
+                    : "pointer",
+              }}
+            >
+              <HugeiconsIcon
+                icon={added || inCart ? Check : Plus}
+                className="w-3.5 h-3.5 text-white"
+              />
+            </button>
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SuggestedRow({ products }: { products: Product[] }) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(
+    products.length > 0,
+  );
+
+  const updateArrows = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -300 : 300,
+      behavior: "smooth",
+    });
+  };
+
+  if (products.length === 0) return null;
+
+  return (
+    <div className="relative">
+      {canScrollLeft && (
+        <button
+          type="button"
+          onClick={() => scroll("left")}
+          aria-label="Scroll left"
+          className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 w-9 h-9 rounded-full bg-white border border-[#E5D9C0] shadow-md flex items-center justify-center hover:bg-[#F5EDD6] transition-colors"
+        >
+          <HugeiconsIcon
+            icon={ChevronLeft}
+            className="w-4 h-4 text-[#7A5C3E]"
+          />
+        </button>
+      )}
+
+      <div
+        ref={scrollRef}
+        onScroll={updateArrows}
+        className="flex gap-4 overflow-x-auto pb-2"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {products.map((p) => (
+          <div key={p.id} className="shrink-0 w-44 sm:w-60">
+            <SuggestedCard product={p} />
+          </div>
+        ))}
+      </div>
+
+      {canScrollRight && (
+        <button
+          type="button"
+          onClick={() => scroll("right")}
+          aria-label="Scroll right"
+          className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 w-9 h-9 rounded-full bg-white border border-[#E5D9C0] shadow-md flex items-center justify-center hover:bg-[#F5EDD6] transition-colors"
+        >
+          <HugeiconsIcon
+            icon={ChevronRight}
+            className="w-4 h-4 text-[#7A5C3E]"
+          />
+        </button>
+      )}
     </div>
   );
 }
@@ -318,12 +418,48 @@ export default function CartPage() {
   const items = useAppSelector(selectCartItems);
   const subtotal = useAppSelector(selectCartTotal);
   const [checkoutOpen, setCheckoutOpen] = React.useState(false);
+  const [pendingOrderRefs, setPendingOrderRefs] = React.useState<string[]>([]);
   const hasSynced = useRef(false);
+
+  const cartIds = React.useMemo(() => items.map((i) => i.id), [items]);
+  const cartCategories = React.useMemo(
+    () => [...new Set(items.map((i) => i.category))].sort(),
+    [items],
+  );
+
+  const refreshPendingRefs = () => {
+    setPendingOrderRefs(
+      JSON.parse(localStorage.getItem("pendingOrderRefs") ?? "[]"),
+    );
+  };
+
+  React.useEffect(() => {
+    refreshPendingRefs();
+  }, []);
+
+  const dismissPendingOrder = (ref: string) => {
+    const updated = pendingOrderRefs.filter((r) => r !== ref);
+    localStorage.setItem("pendingOrderRefs", JSON.stringify(updated));
+    setPendingOrderRefs(updated);
+  };
 
   const { data: categoriesData } = useSiteCategories({ p_site_id: SITE_ID });
   const categories = categoriesData ?? [];
 
-  const cartIds = items.map((i) => i.id);
+  const { data: suggestedRaw } = useInventoryItems({
+    select: "*",
+    queryParams: { site_id: SITE_ID },
+    limit: 30,
+  });
+
+  const visibleSuggestions = React.useMemo(() => {
+    const pool = (suggestedRaw ?? [])
+      .filter((s) => !cartIds.includes(s.id))
+      .map(adaptInventoryItem);
+    const inCategory = pool.filter((p) => cartCategories.includes(p.category));
+    const others = pool.filter((p) => !cartCategories.includes(p.category));
+    return [...inCategory, ...others];
+  }, [suggestedRaw, cartIds, cartCategories]);
 
   const { data: serverItems } = useQuery({
     queryKey: ["cart-sync-initial"],
@@ -360,9 +496,7 @@ export default function CartPage() {
     }
   }, [serverItems, items]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stockMap = new Map(
-    (serverItems ?? []).map((s) => [s.id, s.quantity]),
-  );
+  const stockMap = new Map((serverItems ?? []).map((s) => [s.id, s.quantity]));
 
   const vat = Math.round(subtotal * VAT_RATE);
   const total = subtotal + vat;
@@ -392,6 +526,33 @@ export default function CartPage() {
           <HugeiconsIcon icon={ChevronLeft} className="w-4 h-4" />
           Continue Shopping
         </Link>
+
+        {pendingOrderRefs.map((ref) => (
+          <div
+            key={ref}
+            className="mb-3 flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-sm flex-wrap"
+            style={{ backgroundColor: "#FEF3C7", borderColor: "#FCD34D" }}
+          >
+            <span className="text-[#92400E] font-medium">
+              Pending order — <span className="font-bold">{ref}</span>
+            </span>
+            <div className="flex items-center gap-3">
+              <Link
+                href={`/order/${ref}`}
+                className="font-semibold underline text-[#92400E] hover:opacity-75 transition-opacity"
+              >
+                Track order
+              </Link>
+              <button
+                type="button"
+                onClick={() => dismissPendingOrder(ref)}
+                className="text-[#92400E] opacity-50 hover:opacity-100 transition-opacity text-base leading-none"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        ))}
 
         {items.length === 0 ? (
           <EmptyCart />
@@ -435,25 +596,23 @@ export default function CartPage() {
               </aside>
             </div>
 
-            <section className="mt-12 space-y-5">
-              <div className="flex items-center gap-3">
-                <span
-                  className="block w-1 h-5 rounded-full"
-                  style={{ backgroundColor: "#C8720A" }}
-                />
-                <h2
-                  className="font-bold text-[#2C1A0E]"
-                  style={{ fontFamily: "Georgia, serif" }}
-                >
-                  You May Also Like
-                </h2>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {relatedProducts.map((p) => (
-                  <SuggestedCard key={p.id} product={p} />
-                ))}
-              </div>
-            </section>
+            {visibleSuggestions.length > 0 && (
+              <section className="mt-12 space-y-5">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="block w-1 h-5 rounded-full"
+                    style={{ backgroundColor: "#C8720A" }}
+                  />
+                  <h2
+                    className="font-bold text-[#2C1A0E]"
+                    style={{ fontFamily: "Georgia, serif" }}
+                  >
+                    You May Also Like
+                  </h2>
+                </div>
+                <SuggestedRow products={visibleSuggestions} />
+              </section>
+            )}
           </>
         )}
       </main>
@@ -488,7 +647,10 @@ export default function CartPage() {
 
       <CheckoutModal
         isOpen={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
+        onClose={() => {
+          setCheckoutOpen(false);
+          refreshPendingRefs();
+        }}
         items={items}
         subtotal={subtotal}
       />

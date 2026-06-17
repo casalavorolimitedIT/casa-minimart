@@ -3,13 +3,14 @@
 
 import { type Product, formatPrice, getStockLevel } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { Check, ShoppingCart } from "@hugeicons/core-free-icons";
+import { Check, Heart, ShoppingCart } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import Link from "next/link";
 import SmartImage from "../custom/smart-images";
 import { Button } from "../ui/button";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addItem, selectCartItems } from "@/store/cartSlice";
+import { toggleWishlistItem, selectIsInWishlist } from "@/store/wishlistSlice";
 
 interface ProductCardProps {
   product: Product;
@@ -34,6 +35,7 @@ const stockConfig = {
 export default function ProductCard({ product }: ProductCardProps) {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
+  const inWishlist = useAppSelector(selectIsInWishlist(product.id));
   const level = getStockLevel(product.stock);
   const cfg = stockConfig[level];
 
@@ -60,6 +62,19 @@ export default function ProductCard({ product }: ProductCardProps) {
         imageUrl: product.imageUrl,
         category: product.category,
         qty: 1,
+      }),
+    );
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dispatch(
+      toggleWishlistItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        category: product.category,
       }),
     );
   };
@@ -99,6 +114,19 @@ export default function ProductCard({ product }: ProductCardProps) {
           fallbackVariant="initials"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        {/* Wishlist toggle */}
+        <button
+          type="button"
+          onClick={handleWishlist}
+          aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}
+          className={`absolute top-2 left-2 z-10 w-7 h-7 rounded-full flex items-center justify-center shadow transition-all duration-200 ${
+            inWishlist
+              ? "bg-rose-500 text-white scale-100"
+              : "bg-white/80 text-[#A89070] opacity-0 group-hover:opacity-100 hover:text-rose-500"
+          }`}
+        >
+          <HugeiconsIcon icon={Heart} className="w-3.5 h-3.5" />
+        </button>
       </div>
 
       {/* Info */}

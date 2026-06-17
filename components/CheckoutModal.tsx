@@ -50,13 +50,6 @@ export default function CheckoutModal({
 
   useEffect(() => {
     if (isOpen) {
-      setStep(1);
-      setReceiptSent(false);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -404,6 +397,10 @@ export default function CheckoutModal({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => {
+                    const existing: string[] = JSON.parse(localStorage.getItem("pendingOrderRefs") ?? "[]");
+                    if (!existing.includes(orderRef)) {
+                      localStorage.setItem("pendingOrderRefs", JSON.stringify([...existing, orderRef]));
+                    }
                     saveOrder();
                     setTimeout(() => setReceiptSent(true), 600);
                   }}
@@ -462,7 +459,11 @@ export default function CheckoutModal({
 
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={() => {
+                    const existing: string[] = JSON.parse(localStorage.getItem("pendingOrderRefs") ?? "[]");
+                    localStorage.setItem("pendingOrderRefs", JSON.stringify(existing.filter((r) => r !== orderRef)));
+                    onClose();
+                  }}
                   className="w-full h-12 rounded-xl font-semibold text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-[0.98] hover:opacity-90"
                   style={{ backgroundColor: "#C8720A" }}
                 >

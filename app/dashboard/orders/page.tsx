@@ -1,5 +1,8 @@
 import { revalidatePath } from "next/cache";
+import { Suspense } from "react";
 import { OrderActionButton } from "./order-action-button";
+import { SearchInput } from "./search-input";
+import { PaginationControls } from "./pagination-controls";
 import { requireAdmin } from "@/app/dashboard/require-admin";
 import { createPmsAdminClient } from "@/lib/supabase/pms-admin";
 import { formatPrice } from "@/lib/data";
@@ -23,35 +26,48 @@ async function updateOrderStatus(ref: string, status: OrderStatus) {
 export default async function OrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>;
 }) {
   await requireAdmin();
 
-  const { status: filterStatus } = await searchParams;
+  const { status: filterStatus, q: searchQuery, page: pageParam } = await searchParams;
+  const PAGE_SIZE = 10;
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10));
+  const offset = (page - 1) * PAGE_SIZE;
+
   const client = createPmsAdminClient();
 
-  let query = client
+  let dataQuery = client
     .from("orders")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("created_at", { ascending: false });
 
   if (filterStatus && filterStatus !== "all") {
-    query = query.eq("status", filterStatus);
+    dataQuery = dataQuery.eq("status", filterStatus);
+  }
+  if (searchQuery) {
+    dataQuery = dataQuery.ilike("ref", `%${searchQuery}%`);
   }
 
-  const { data } = await query.returns<Order[]>();
-  const orders = data ?? [];
-
-  const counts = await Promise.all(
-    (["pending", "confirmed", "delivered"] as OrderStatus[]).map(async (s) => {
-      const { count } = await client
+  const [{ data, count: filteredCount }, ...statusCounts] = await Promise.all([
+    dataQuery.range(offset, offset + PAGE_SIZE - 1),
+    ...(["pending", "confirmed", "delivered"] as OrderStatus[]).map((s) =>
+      client
         .from("orders")
         .select("*", { count: "exact", head: true })
-        .eq("status", s);
-      return [s, count ?? 0] as [OrderStatus, number];
-    }),
-  );
-  const countMap = Object.fromEntries(counts) as Record<OrderStatus, number>;
+        .eq("status", s),
+    ),
+  ]);
+
+  const orders: Order[] = data ?? [];
+  const totalPages = Math.ceil((filteredCount ?? 0) / PAGE_SIZE);
+
+  const countMap = Object.fromEntries(
+    (["pending", "confirmed", "delivered"] as OrderStatus[]).map((s, i) => [
+      s,
+      statusCounts[i].count ?? 0,
+    ]),
+  ) as Record<OrderStatus, number>;
   const totalCount = countMap.pending + countMap.confirmed + countMap.delivered;
 
   const tabs: { key: string; label: string; count: number }[] = [
@@ -65,24 +81,33 @@ export default async function OrdersPage({
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1
           className="text-2xl font-bold text-[#2C1A0E]"
           style={{ fontFamily: "Georgia, serif" }}
         >
           Orders
         </h1>
-        <span className="text-sm text-[#A89070]">{totalCount} total</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[#A89070]">{totalCount} total</span>
+          <Suspense>
+            <SearchInput />
+          </Suspense>
+        </div>
       </div>
 
       {/* Status filter tabs */}
       <div className="flex gap-2 flex-wrap">
         {tabs.map((tab) => {
           const isActive = tab.key === activeTab;
+          const tabParams = new URLSearchParams();
+          if (tab.key !== "all") tabParams.set("status", tab.key);
+          if (searchQuery) tabParams.set("q", searchQuery);
+          const tabHref = `/dashboard/orders${tabParams.toString() ? `?${tabParams.toString()}` : ""}`;
           return (
             <a
               key={tab.key}
-              href={`/dashboard/orders${tab.key === "all" ? "" : `?status=${tab.key}`}`}
+              href={tabHref}
               className="flex items-center gap-1.5 px-4 h-9 rounded-xl text-sm font-semibold transition-all border"
               style={{
                 backgroundColor: isActive ? "#C8720A" : "white",
@@ -232,6 +257,10 @@ export default async function OrdersPage({
           })}
         </div>
       )}
+
+      <Suspense>
+        <PaginationControls page={page} totalPages={totalPages} />
+      </Suspense>
     </main>
   );
 }
