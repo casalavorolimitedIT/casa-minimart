@@ -18,7 +18,7 @@ export default function PopularSection() {
 
   const { data: raw, isLoading } = useInventoryItems({
     select: "*",
-    limit: 6,
+    limit: 3,
     order: "created_at.desc",
     queryParams: {
       site_id: SITE_ID,
@@ -45,7 +45,7 @@ export default function PopularSection() {
 
   return (
     <section
-      className="rounded-2xl p-5 sm:p-6 space-y-4"
+      className="rounded-2xl py-5 sm:py-6 space-y-4"
       style={{ backgroundColor: "var(--espresso)" }}
     >
       {/* Header */}
