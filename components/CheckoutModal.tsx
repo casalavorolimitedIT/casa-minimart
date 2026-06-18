@@ -42,7 +42,7 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const [step, setStep] = useState(1);
   const [orderRef] = useState(generateOrderRef);
-  const [copiedField, setCopiedField] = useState<"account" | "amount" | null>(null);
+  const [copiedField, setCopiedField] = useState<"account" | "amount" | "narration" | null>(null);
   const [receiptSent, setReceiptSent] = useState(false);
 
   const vat = Math.round(subtotal * VAT_RATE);
@@ -307,18 +307,39 @@ export default function CheckoutModal({
 
             {/* Narration reminder */}
             <div
-              className="flex items-start gap-2 px-3 py-2.5 rounded-xl text-xs"
+              className="rounded-xl px-3 py-2.5 space-y-2 text-xs"
               style={{ backgroundColor: "#EAF2EC", color: "#4A7C59" }}
             >
-              <HugeiconsIcon
-                icon={Check}
-                className="w-3.5 h-3.5 shrink-0 mt-0.5"
-              />
-              <span>
-                Use{" "}
-                <strong className="font-bold tracking-wide">{orderRef}</strong>{" "}
-                as your transfer narration so we can match your payment.
-              </span>
+              <div className="flex items-start gap-2">
+                <HugeiconsIcon
+                  icon={Check}
+                  className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                />
+                <span>
+                  Use your order reference as the <strong>transfer narration</strong> so we can match your payment.
+                </span>
+              </div>
+              <div className="flex items-center justify-between pl-5">
+                <span className="font-bold tracking-wide text-sm text-[#2C1A0E]">
+                  {orderRef}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(orderRef).then(() => {
+                      setCopiedField("narration");
+                      setTimeout(() => setCopiedField(null), 2000);
+                    });
+                  }}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full transition-all shrink-0"
+                  style={{
+                    backgroundColor: copiedField === "narration" ? "#4A7C59" : "#C8720A",
+                    color: "white",
+                  }}
+                >
+                  {copiedField === "narration" ? "Copied!" : "Copy"}
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3">

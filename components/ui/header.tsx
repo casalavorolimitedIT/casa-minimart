@@ -241,7 +241,7 @@ export default function NavbarComponents({
       <header
         className="sticky top-0 z-50 w-full border-b border-[#DDD0B3]"
         style={{
-          backgroundColor: "rgba(255, 253, 247, 0.8)",
+          backgroundColor: "rgba(255, 253, 247)",
           backdropFilter: "blur(12px)",
         }}
       >

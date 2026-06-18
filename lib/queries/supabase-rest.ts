@@ -22,6 +22,7 @@ export interface InventoryItemsQueryParams {
   select?: string;
   limit?: number;
   offset?: number;
+  order?: string;
   queryParams?: Record<string, QueryValue | undefined | null>;
 }
 
@@ -95,6 +96,10 @@ export async function fetchInventoryItems(params: InventoryItemsQueryParams = {}
 
   if (params.offset !== undefined) {
     searchParams.set("offset", String(params.offset));
+  }
+
+  if (params.order !== undefined) {
+    searchParams.set("order", params.order);
   }
 
   if (params.queryParams) {

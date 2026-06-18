@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Footer from "@/components/home/Footer";
 import ProductCard from "@/components/home/productCard";
@@ -11,6 +11,8 @@ import {
   useInfiniteInventoryItems,
   useSiteCategories,
 } from "@/lib/queries/supabase-rest";
+import { Cancel01Icon, Search } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
 
@@ -30,6 +32,7 @@ export default function CategoryPage() {
   const router = useRouter();
   const slug = params.slug as string;
 
+  const [search, setSearch] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const { data: categoriesData, isLoading: categoriesLoading } =
@@ -86,6 +89,11 @@ export default function CategoryPage() {
   }, [hasNextPage, fetchNextPage, isLoading]);
 
   const products = data?.pages.flat().map(adaptInventoryItem) ?? [];
+  const filtered = search.trim()
+    ? products.filter((p) =>
+        p.name.toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : products;
   const totalLoaded = products.length;
 
   return (
@@ -105,34 +113,84 @@ export default function CategoryPage() {
 
         <main className="flex-1 min-w-0 space-y-8">
           {/* Category heading */}
-          <div className="pb-4 border-b border-[#E5D9C0]">
-            <div className="flex items-center gap-3 mb-1">
-              <span
-                className="block w-1 h-6 rounded-full"
-                style={{ backgroundColor: accentColor }}
-              />
-              <p
-                className="text-[10px] font-bold uppercase tracking-widest"
-                style={{ color: "#A89070" }}
-              >
-                Category
-              </p>
+          <div className="pb-4 border-b border-[#E5D9C0] space-y-3">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <span
+                  className="block w-1 h-6 rounded-full"
+                  style={{ backgroundColor: accentColor }}
+                />
+                <p
+                  className="text-[10px] font-bold uppercase tracking-widest"
+                  style={{ color: "#A89070" }}
+                >
+                  Category
+                </p>
+              </div>
+              <div className="flex justify-between items-center flex-wrap gap-3">
+                <h1
+                  className="text-2xl flex justify-between w-full md:w-fit font-bold lg:pl-4"
+                  style={{
+                    color: "var(--espresso)",
+                    fontFamily: "Georgia, serif",
+                  }}
+                >
+                  {categoryName}
+                  {!isLoading && (
+                <p className="text-sm lg:hidden mt-1 pl-4" style={{ color: "#7A5C3E" }}>
+                  {search.trim()
+                    ? `${filtered.length} of ${totalLoaded}`
+                    : totalLoaded}{" "}
+                  product
+                  {(search.trim() ? filtered.length : totalLoaded) !== 1
+                    ? "s"
+                    : ""}
+                  {!search.trim() && hasNextPage ? "+" : ""}
+                </p>
+              )}
+                </h1>
+
+                {/* Search bar */}
+                <div className="relative w-full md:w-fit">
+                  <HugeiconsIcon
+                    icon={Search}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-[#C8720A]"
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={`Search in ${categoryName}…`}
+                    className="w-full pl-9 pr-9 h-9 rounded-lg border border-[#DDD0B3] bg-white text-sm text-[#2C1A0E] placeholder:text-[#A89070] focus:outline-none focus:ring-2 focus:ring-[#C8720A]/30 focus:border-[#C8720A] transition-colors"
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      aria-label="Clear search"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full text-[#A89070] hover:text-[#2C1A0E] hover:bg-[#F5EDD6] transition-colors"
+                    >
+                      <HugeiconsIcon
+                        icon={Cancel01Icon}
+                        className="w-3.5 h-3.5"
+                      />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {!isLoading && (
+                <p className="text-sm hidden lg:block mt-1 pl-4" style={{ color: "#7A5C3E" }}>
+                  {search.trim()
+                    ? `${filtered.length} of ${totalLoaded}`
+                    : totalLoaded}{" "}
+                  product
+                  {(search.trim() ? filtered.length : totalLoaded) !== 1
+                    ? "s"
+                    : ""}
+                  {!search.trim() && hasNextPage ? "+" : ""}
+                </p>
+              )}
             </div>
-            <h1
-              className="text-2xl font-bold pl-4"
-              style={{
-                color: "var(--espresso)",
-                fontFamily: "Georgia, serif",
-              }}
-            >
-              {categoryName}
-            </h1>
-            {!isLoading && (
-              <p className="text-sm mt-1 pl-4" style={{ color: "#7A5C3E" }}>
-                {totalLoaded} product{totalLoaded !== 1 ? "s" : ""}
-                {hasNextPage ? "+" : ""}
-              </p>
-            )}
           </div>
 
           {isLoading && (
@@ -153,9 +211,9 @@ export default function CategoryPage() {
 
           {!isLoading && !error && (
             <div className="space-y-6">
-              {products.length > 0 ? (
+              {filtered.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 stagger-children">
-                  {products.map((product) => (
+                  {filtered.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))}
                 </div>
@@ -165,8 +223,19 @@ export default function CategoryPage() {
                     className="text-base font-semibold"
                     style={{ color: "var(--espresso)" }}
                   >
-                    No products in this category
+                    {search.trim()
+                      ? `No products match "${search.trim()}"`
+                      : "No products in this category"}
                   </p>
+                  {search.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      className="mt-3 text-sm text-[#C8720A] hover:underline font-medium"
+                    >
+                      Clear search
+                    </button>
+                  )}
                 </div>
               )}
 

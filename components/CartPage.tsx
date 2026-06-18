@@ -16,7 +16,7 @@ import {
   Check,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { formatPrice } from "@/lib/data";
+import { formatPrice, getStockLevel } from "@/lib/data";
 import { adaptInventoryItem } from "@/lib/adapters";
 import SmartImage from "@/components/custom/smart-images";
 import NavbarComponents from "@/components/ui/header";
@@ -250,13 +250,20 @@ function EmptyCart() {
 }
 
 import type { Product } from "@/lib/data";
+import { stockConfig } from "./home/productCard";
+import { cn } from "@/lib/utils";
 
 function SuggestedCard({ product }: { product: Product }) {
   const dispatch = useAppDispatch();
   const cartItems = useAppSelector(selectCartItems);
   const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [added, setAdded] = React.useState(false);
-
+  const level = getStockLevel(product.stock);
+  const cfg = stockConfig[level];
+  const stockLabel =
+    level === "out" || level === "critical" || level === "plenty"
+      ? cfg.label
+      : (cfg.label as (n: number) => string)(product.stock);
   const cartItem = cartItems.find((i) => i.id === product.id);
   const inCart = (cartItem?.qty ?? 0) > 0;
   const outOfStock = (product.stock ?? 0) === 0;
@@ -291,6 +298,19 @@ function SuggestedCard({ product }: { product: Product }) {
           height={225}
           className="w-full h-full object-cover group-hover:scale-105 aspect-[4/3] transition-transform duration-300"
         />
+        {/* Stock badge */}
+        {level !== "plenty" && (
+          <div className="absolute top-2 right-2 z-10">
+            <span
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-wide text-white px-2 py-0.5 rounded-full",
+                cfg.bg,
+              )}
+            >
+              {stockLabel as string}
+            </span>
+          </div>
+        )}
       </Link>
       <div className="p-3 flex flex-col gap-2 flex-1">
         <p

@@ -16,7 +16,7 @@ interface ProductCardProps {
   product: Product;
 }
 
-const stockConfig = {
+export const stockConfig = {
   out: { label: "Out of stock", variant: "low" as const, bg: "bg-gray-400" },
   critical: { label: "Only 1 left", variant: "low" as const, bg: "bg-red-500" },
   low: {

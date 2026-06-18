@@ -20,11 +20,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { addItem, selectCartItems } from "@/store/cartSlice";
-import {
-  toggleWishlistItem,
-  selectIsInWishlist,
-} from "@/store/wishlistSlice";
-import { formatPrice, type Product } from "@/lib/data";
+import { toggleWishlistItem, selectIsInWishlist } from "@/store/wishlistSlice";
+import { formatPrice, getStockLevel, type Product } from "@/lib/data";
 import Footer from "@/components/home/Footer";
 import SmartImage from "./custom/smart-images";
 import NavbarComponents from "@/components/ui/header";
@@ -38,6 +35,8 @@ import {
   adaptInventoryItem,
   CATEGORY_ACCENT,
 } from "@/lib/adapters";
+import { stockConfig } from "./home/productCard";
+import { cn } from "@/lib/utils";
 
 const SITE_ID = "2f8cd82b-4ff4-44fe-965d-10f4a2a37bb7";
 
@@ -185,6 +184,7 @@ function ImageGallery({
         {displayImages.length > 1 && (
           <>
             <button
+              title="left"
               type="button"
               onClick={() =>
                 setActive(
@@ -200,6 +200,7 @@ function ImageGallery({
             </button>
             <button
               type="button"
+              title="right"
               onClick={() => setActive((a) => (a + 1) % displayImages.length)}
               className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm shadow flex items-center justify-center hover:bg-white transition-colors"
             >
@@ -312,7 +313,10 @@ function QuantitySelector({
             : "border-[#DDD0B3] text-[#A89070] hover:text-rose-400 bg-white hover:border-rose-200"
         }`}
       >
-        <HugeiconsIcon icon={inWishlist? HeartCheckIcon: Heart} className="w-4 h-4" />
+        <HugeiconsIcon
+          icon={inWishlist ? HeartCheckIcon : Heart}
+          className="w-4 h-4"
+        />
       </button>
     </div>
   );
@@ -388,6 +392,12 @@ function RelatedRow({ products }: { products: Product[] }) {
 
 function RelatedCard({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
+  const level = getStockLevel(product.stock);
+  const cfg = stockConfig[level];
+  const stockLabel =
+    level === "out" || level === "critical" || level === "plenty"
+      ? cfg.label
+      : (cfg.label as (n: number) => string)(product.stock);
   return (
     <Link
       href={`/home/product/${product.id}`}
@@ -403,6 +413,19 @@ function RelatedCard({ product }: { product: Product }) {
           label={product.name}
           fallbackVariant="initials"
         />
+        {/* Stock badge */}
+        {level !== "plenty" && (
+          <div className="absolute top-2 right-2 z-10">
+            <span
+              className={cn(
+                "text-[10px] font-bold uppercase tracking-wide text-white px-2 py-0.5 rounded-full",
+                cfg.bg,
+              )}
+            >
+              {stockLabel as string}
+            </span>
+          </div>
+        )}
       </div>
       <div className="p-3 flex flex-col gap-2 flex-1">
         <p
@@ -432,8 +455,18 @@ function RelatedCard({ product }: { product: Product }) {
             className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
             style={{
               backgroundColor: added ? "#4A7C59" : "#C8720A",
-              opacity: product.stock === 0 || product.price === null || product.price === 0 ? 0.6 : 1,
-              cursor: product.stock === 0 || product.price === null || product.price === 0 ? "not-allowed" : "pointer",
+              opacity:
+                product.stock === 0 ||
+                product.price === null ||
+                product.price === 0
+                  ? 0.6
+                  : 1,
+              cursor:
+                product.stock === 0 ||
+                product.price === null ||
+                product.price === 0
+                  ? "not-allowed"
+                  : "pointer",
             }}
           >
             {added ? (
@@ -741,7 +774,8 @@ export default function ProductDetailPage() {
                 type="button"
                 disabled={product.stock === 0 || product.price === null}
                 onClick={() => {
-                  if (!product || product.stock === 0 || product.price === null) return;
+                  if (!product || product.stock === 0 || product.price === null)
+                    return;
                   if (!atCartMax) {
                     dispatch(
                       addItem({
@@ -760,8 +794,12 @@ export default function ProductDetailPage() {
                 style={{
                   borderColor: "#C8720A",
                   color: "#C8720A",
-                  opacity: product.stock === 0 || product.price === null ? 0.6 : 1,
-                  cursor: product.stock === 0 || product.price === null ? "not-allowed" : "pointer",
+                  opacity:
+                    product.stock === 0 || product.price === null ? 0.6 : 1,
+                  cursor:
+                    product.stock === 0 || product.price === null
+                      ? "not-allowed"
+                      : "pointer",
                 }}
               >
                 Buy Now

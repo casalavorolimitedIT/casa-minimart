@@ -133,7 +133,7 @@ export default function HeroBanner() {
         </div>
       </div>
 
-      {/* Section header */}
+      {/* Section header
       <div className="flex items-center gap-3 pt-1">
         <span
           className="block w-1 h-5 rounded-full"
@@ -145,9 +145,9 @@ export default function HeroBanner() {
         >
           Featured This Week
         </h2>
-      </div>
+      </div> */}
 
-      {/* Featured tiles */}
+      {/* Featured tiles
       <div className="grid grid-cols-3 gap-3">
         {featuredTiles.map((tile) => (
           <a
@@ -174,7 +174,7 @@ export default function HeroBanner() {
             </div>
           </a>
         ))}
-      </div>
+      </div> */}
     </div>
   );
 }
