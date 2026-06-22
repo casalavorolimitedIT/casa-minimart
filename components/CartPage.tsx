@@ -482,7 +482,7 @@ export default function CartPage() {
   }, [suggestedRaw, cartIds, cartCategories]);
 
   const { data: serverItems } = useQuery({
-    queryKey: ["cart-sync-initial"],
+    queryKey: ["cart-sync-initial", cartIds],
     queryFn: () =>
       fetchInventoryItems({
         queryParams: {

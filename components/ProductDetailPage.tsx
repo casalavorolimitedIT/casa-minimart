@@ -391,6 +391,8 @@ function RelatedRow({ products }: { products: Product[] }) {
 }
 
 function RelatedCard({ product }: { product: Product }) {
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector(selectCartItems);
   const [added, setAdded] = useState(false);
   const level = getStockLevel(product.stock);
   const cfg = stockConfig[level];
@@ -398,6 +400,31 @@ function RelatedCard({ product }: { product: Product }) {
     level === "out" || level === "critical" || level === "plenty"
       ? cfg.label
       : (cfg.label as (n: number) => string)(product.stock);
+
+  const cartQty = cartItems.find((i) => i.id === product.id)?.qty ?? 0;
+  const atMax = cartQty >= product.stock;
+  const disabled =
+    product.stock === 0 ||
+    product.price === null ||
+    product.price === 0 ||
+    atMax;
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (disabled || product.price === null) return;
+    dispatch(
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        category: product.category,
+        qty: 1,
+      }),
+    );
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
   return (
     <Link
       href={`/home/product/${product.id}`}
@@ -442,34 +469,17 @@ function RelatedCard({ product }: { product: Product }) {
           </span>
           <button
             type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              setAdded(true);
-              setTimeout(() => setAdded(false), 1800);
-            }}
-            disabled={
-              product.stock === 0 ||
-              product.price === null ||
-              product.price === 0
-            }
+            onClick={handleAdd}
+            disabled={disabled}
+            title={atMax ? "Max in cart" : undefined}
             className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 active:scale-90"
             style={{
-              backgroundColor: added ? "#4A7C59" : "#C8720A",
-              opacity:
-                product.stock === 0 ||
-                product.price === null ||
-                product.price === 0
-                  ? 0.6
-                  : 1,
-              cursor:
-                product.stock === 0 ||
-                product.price === null ||
-                product.price === 0
-                  ? "not-allowed"
-                  : "pointer",
+              backgroundColor: added || atMax ? "#4A7C59" : "#C8720A",
+              opacity: disabled && !atMax ? 0.6 : 1,
+              cursor: disabled ? "not-allowed" : "pointer",
             }}
           >
-            {added ? (
+            {added || atMax ? (
               <HugeiconsIcon icon={Check} className="w-3.5 h-3.5 text-white" />
             ) : (
               <HugeiconsIcon icon={Plus} className="w-3.5 h-3.5 text-white" />
